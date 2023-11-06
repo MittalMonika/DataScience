@@ -1,0 +1,15 @@
+// Wait for the DOM to load
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the link element
+    var mySpecialLink = document.getElementById('mySpecialLink');
+
+    // Attach a click event handler to the link
+    mySpecialLink.addEventListener('click', function(event) {
+        // Prevent the default link click behavior
+        event.preventDefault();
+
+        // Open two pages in new tabs
+        window.open('PredictPrice_JP.html');
+        window.open('PredictPrice_JP2.html'); // Replace with your second file's actual URL
+    });
+});
