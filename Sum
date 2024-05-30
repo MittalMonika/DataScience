@@ -1,0 +1,13 @@
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+# Specify the model name
+model_name = "google/flan-t5-base"
+
+# Load the tokenizer and model
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+# Move the model to GPU
+model = model.to("cuda")
+
+print("Model and tokenizer are loaded and moved to GPU.")
