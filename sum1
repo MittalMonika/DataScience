@@ -128,3 +128,51 @@ file_path = 'path_to_JD_letter.pdf'
 page_summary = summarize_one_page(file_path, page_number=0)
 print("Summary for Page 1:", page_summary)
 
+
+
+
+
+
+def chunk_text(text, max_length=500):
+    # Tokenize the text and split into chunks that do not exceed max_length
+    tokens = tokenizer.tokenize(text)
+    chunks = []
+    current_chunk = []
+    current_length = 0
+    for token in tokens:
+        current_chunk.append(token)
+        current_length += 1
+        if current_length >= max_length:
+            chunks.append(tokenizer.convert_tokens_to_string(current_chunk))
+            current_chunk = []
+            current_length = 0
+    if current_chunk:  # Append the last chunk if any
+        chunks.append(tokenizer.convert_tokens_to_string(current_chunk))
+    return chunks
+
+def summarize_text(text):
+    chunks = chunk_text(text, max_length=500)  # Adjust the max_length as needed
+    summaries = []
+    for chunk in chunks:
+        inputs = tokenizer.encode("summarize: " + chunk, return_tensors="pt", truncation=True, max_length=512)
+        inputs = inputs.to(next(model.parameters()).device)  # Move inputs to the same device as model
+        outputs = model.generate(inputs, max_length=150, num_beams=4, length_penalty=2.0, early_stopping=True)
+        summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        summaries.append(summary)
+    return " ".join(summaries)
+
+
+model = model.to("cuda" if torch.cuda.is_available() else "cpu")
+
+def process_document(file_path, page_number=0):
+    text = extract_text_pdfplumber(file_path, page_number) + extract_text_ocr(file_path, page_number)
+    summary = summarize_text(text)
+    return summary
+
+# Example usage
+file_path = 'path_to_JD_letter.pdf'
+document_summary = process_document(file_path)
+print("Document Summary:", document_app)
+
+
+
