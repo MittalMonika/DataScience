@@ -23,3 +23,38 @@ outputs = model.generate(**inputs)
 
 print(tokenizer.batch_decode(outputs, skip_special_tokens=True))
 ['Pour a cup of bolognese into a large bowl and add the pasta']
+
+
+import torch
+
+def summarize_text(text, model, tokenizer, max_length=150):
+    # Prepend the prompt to the input text
+    input_text = "summarize: " + text
+    
+    # Encode the text input to tensor
+    input_ids = tokenizer.encode(input_text, return_tensors="pt").to(model.device)
+    
+    # Generate summary output using the model
+    with torch.no_grad():
+        summary_ids = model.generate(
+            input_ids,
+            max_length=max_length,
+            num_beams=4,
+            length_penalty=2.0,
+            early_stopping=True
+        )
+    
+    # Decode and return the summary
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
+
+# Example text
+sample_text = """
+The history of natural language processing (NLP) generally started in the 1950s, although work can be found from earlier periods. 
+In 1950, Alan Turing published an article titled "Computing Machinery and Intelligence" which proposed what is now called the Turing test as a criterion of intelligence.
+"""
+
+# Call the summarization function
+summary = summarize_text(sample, model, tokenizer)
+print("Original Text:", sample_text)
+print("Summary:", summary)
