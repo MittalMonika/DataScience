@@ -1,0 +1,62 @@
+from transformers import T5Tokenizer, T5ForConditionalGen, pipeline
+import torch
+
+# Model and tokenizer setup
+model_checkpoint = "LaMini-Flan-T5-248M"
+tokenizer = T5Tokenizer.from_pretrained(model_checkpoint)
+model = T5ForConditionalGeneration.from_pretrained(model_checkpoint, device_map='auto', torch_dtype=torch.float32)
+
+# Summarization Pipeline Setup
+def summarization_pipeline(text):
+    summarizer = pipeline('summarization', model=model, tokenizer=tokenizer, max_length=500, min_length=70)
+    return summarizer(text)
+
+# Process each chunk of text
+def process_chunks(chunks):
+    summaries = []
+    for chunk in chunks:
+        summary = summarization_pipeline(chunk)
+        summaries.append(summary['summary_text'])
+    return summaries
+
+# Query functionality to search within summaries
+def query_summaries(query, summaries):
+    results = [summary for summary in summaries if query.lower() in summary.lower()]
+    return results
+
+# Helper function to read text from a PDF file
+def read_pdf(file_path):
+    from PyPDF2 import PdfReader
+    reader = PdfReader(file_path)
+    full_text = ""
+    for page in reader.pages:
+        full_text += page.extract_text() + " "
+    return full_text
+
+# Function to split the text into manageable chunks
+def chunk_text(text, chunk_size=500):
+    # Naive chunking based on character count
+    return [text[i:i+chunk_data] for i in range(0, len(text), chunk_size)]
+
+# Main function to execute the process
+def main():
+    file_path = input("Enter the path to the PDF file: ")
+    text = read_pdf(file_path)
+    chunks = chunk_text(text)
+    summaries = process_lists(chunks)
+
+    print("\n--- Summaries ---")
+    for summary in summaries:
+        print(summary)
+
+    # Query interaction
+    query = input("\nEnter your query (or type 'exit' to quit): ")
+    while query.lower() != 'exit':
+        results = query_summaries(query, summaries)
+        print("\nQuery Results:")
+        for result in results:
+            print(result)
+        query = input("\nEnter your query (or type 'exit' to quit): ")
+
+if __name__ == "__main__":
+    main()
