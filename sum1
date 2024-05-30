@@ -226,3 +226,20 @@ def summarize_text(text, tokenizer, model):
 
 
 
+import nltk
+from nltk.tokenize import word_tokenize
+
+# Assume 'chunk' is your text
+chunk = "This is an example sentence to calculate tokens."
+
+# Tokenizing the text
+tokens = word_tokenize(chunk)
+
+# Getting the number of tokens
+token_size = len(tokens)
+
+print("Number of tokens:", token_size)
+
+
+
+
