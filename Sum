@@ -1,13 +1,13 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-# Specify the model name
-model_name = "google/flan-t5-base"
+# Specify the model name for the smaller variant, which is more manageable for testing
+model_name = "google/flan-t5-small"
 
 # Load the tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-# Move the model to GPU
+# Move the model to GPU for faster processing
 model = model.to("cuda")
 
 print("Model and tokenizer are loaded and moved to GPU.")
