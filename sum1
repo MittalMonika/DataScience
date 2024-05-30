@@ -176,3 +176,53 @@ print("Document Summary:", document_app)
 
 
 
+
+
+
+
+
+
+
+
+import re
+
+def remove_page_numbers(text):
+    # Regex to find standalone numbers - adjust as needed based on your document's formatting
+    cleaned_text = re.sub(r'\s+\d+\s*$', '', text)
+    return cleaned_text
+
+def process_document(file_path):
+    with pdfplumber.open(file_path) as pdf:
+        total_pages = len(pdf.pages)
+        all_summaries = []
+        for i in range(total_pages):
+            text = extract_text_ocr(file_path, i)
+            # Remove page numbers from extracted text
+            text = remove_page_numbers(text)
+            page_summary = summarize_text(text)
+            all_summaries.append(page_summary)
+            print(f"Processed page {i+1}/{total_pages}")
+    final_summary = " ".join(all_summaries)
+    return final_summary
+
+def summarize_text(text, tokenizer, model):
+    # Split the text into manageable chunks
+    max_chunk_size = 400  # Adjust based on the model's capacity and the nature of the text
+    chunks = chunk_text(text, max_chunk_size, tokenizer)
+    
+    # Summarize each chunk using the model
+    all_summaries = []
+    for chunk in chunks:
+        input_ids = tokenizer.encode("summarize: " + chunk, return_tensors="pt", truncation=True, max_length=512)
+        input_ids = input_ids.to(next(model.parameters()).device)  # Move input to the correct device
+        summary_ids = model.generate(input_ids, max_length=150, num_beams=4, length_penalty=2.0, early_stopping=True)
+        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        all_summaries.append(summary)
+    
+    # Combine all chunk summaries into one final summary
+    final_summary = " ".join(all_summaries)
+    return final_summary
+
+
+
+
