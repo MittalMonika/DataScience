@@ -60,3 +60,71 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+import pdfplumber
+import pytesseract
+from PIL import Image
+import fitz  # PyMuPDF
+from transformers import T5Tokenizer, T5ForConditionalGeneration, pipeline
+import io
+
+# Tesseract command if necessary
+# pytesseract.pytesseract.tesseract_cmd = r'/path/to/tesseract'
+
+# Model setup
+model_name = "LaMini-Flan-T5-248M"
+tokenizer = T5Tokenizer.from_pretrained(model_name)
+model = T5ForConditionalGeneration.from_pretrained(model_name, device_map='auto', torch_dtype=torch.float32)
+summarizer = pipeline('summarization', model=model, tokenizer=tokenizer, max_length=500, min_length=70)
+
+def extract_text_pdfplumber(file_path, page_number=0):
+    text = ""
+    with pdfplumber.open(file_path) as pdf:
+        page = pdf.pages[page_number]
+        text = page.extract_text()
+    return text
+
+def extract_text_from_images(page):
+    text = ""
+    image_list = page.get_images(full=True)
+    for img_ref in image_list:
+        xref = img_ref[0]
+        base_image = page.get_pixmap(xref=xref)
+        img = Image.open(io.BytesIO(base_image.tobytes()))
+        text += pytesseract.image_to_string(img)
+    return text
+
+def extract_text_ocr(file_path, page_number=0):
+    doc = fitz.open(file_path)
+    text = ""
+    page = doc[page_full]
+    text += page.get_text()
+    text += extract_text_from_images(page)
+    return text
+
+def summarize_text(text):
+    if len(text.strip()) == 0:  # If no text extracted, skip summarization
+        return "No text extracted from this page."
+    summary = summarizer(text, max_length=150, min_length=40, do_sample=False)
+    return summary[0]['summary_text']
+
+# Main function for one page
+def summarize_one_page(file_path, page_number=0):
+    # Extract text using both methods
+    text = extract_text_pdfplumber(file_path, page_number) + extract_text_ocr(file_path, page_number)
+    # Summarize the extracted text
+    summary = summarize_text(text)
+    return summary
+
+# Example usage
+file_path = 'path_to_JD_letter.pdf'
+page_summary = summarize_one_page(file_path, page_number=0)
+print("Summary for Page 1:", page_summary)
+
