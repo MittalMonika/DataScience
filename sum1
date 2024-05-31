@@ -242,4 +242,40 @@ print("Number of tokens:", token_size)
 
 
 
+import spacy
+
+# Load a spaCy model
+nlp = spacy.load("en_core_web_sm")
+
+def chunk_text_spacy(text, max_token_size):
+    # Use spaCy to parse document and respect sentence boundaries
+    doc = nlp(text)
+    current_chunk = []
+    chunks = []
+    current_length = 0
+    
+    for sent in doc.sents:
+        sentence = sent.text.strip()
+        sentence_length = len(tokenizer.encode(sentence, add_special_tokens=False))
+        
+        if current_length + sentence_length > max_token_size:
+            chunks.append(" ".join(current_chunk))
+            current_chunk = [sentence]
+            current_length = sentence_length
+        else:
+            current_chunk.append(sentence)
+            current_length += sentence_length
+    
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+    
+    return chunks
+
+# Example usage
+text = "Your long document text here."
+chunks = chunk_text_spacy(text, 500)  # Adjust the token limit as needed
+
+
+
+
 
