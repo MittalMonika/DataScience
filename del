@@ -1,0 +1,56 @@
+import fitz  # PyMuPDF
+import pandas as pd
+
+def DocumentReader(pdf_path):
+    """
+    Extracts text from a PDF document.
+    
+    Args:
+    pdf_path (str): Path to the PDF document.
+    
+    Returns:
+    str: Extracted text from the PDF.
+    """
+    # Open the PDF file
+    document = fitz.open(pdf_path)
+    text = ""
+    
+    # Extract text from each page
+    for page_num in range(len(document)):
+        page = document.load_page(page_num)
+        text += page.get_text()
+    
+    return text
+
+def ClauseMiningProcessor(text):
+    """
+    Processes the extracted text into a structured DataFrame.
+    
+    Args:
+    text (str): Extracted text from the PDF.
+    
+    Returns:
+    pd.DataFrame: DataFrame with processed text content.
+    """
+    # Split the text into clauses based on some delimiter, e.g., periods.
+    # You can customize this part to fit your specific needs.
+    clauses = text.split('.')
+    
+    # Create a DataFrame from the clauses
+    df = pd.DataFrame(clauses, columns=['Clause'])
+    
+    # Optionally, clean the DataFrame (e.g., remove empty clauses)
+    df['Clause'] = df['Clause'].str.strip()
+    df = df[df['Clause'] != '']
+    
+    return df
+
+# Example usage
+pdf_path = 'path/to/your/large/document.pdf'
+text = DocumentReader(pdf_path)
+df = ClauseMiningProcessor(text)
+
+print(df.head())
+
+
+      !pip install PyMuPDF pandas
