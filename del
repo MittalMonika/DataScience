@@ -54,3 +54,34 @@ print(df.head())
 
 
       !pip install PyMuPDF pandas
+
+
+
+
+
+from transformers import BertTokenizer, BertModel
+import torch
+
+# Load FinBERT tokenizer and model
+tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-tone')
+model = BertModel.from_pretrained('yiyanghkust/finbert-tone')
+
+def get_finbert_embeddings(text_list):
+    embeddings = []
+    for text in text_list:
+        # Tokenize and encode the text
+        inputs = tokenizer(text, return_tensors='pt', max_length=512, truncation=True, padding='max_length')
+        # Get the model outputs
+        with torch.no_grad():
+            outputs = model(**inputs)
+        # Get the mean of the embeddings for all tokens
+        embeddings.append(outputs.last_hidden_state.mean(dim=1).squeeze().numpy())
+    return embeddings
+
+# Sample data
+control_descriptions = ["Description of control A", "Description of control B", "Description of control C"]
+embeddings = get_finbert_embeddings(control_descriptions)
+
+# Print the embeddings
+for idx, emb in enumerate(embeddings):
+    print(f"Embedding for control {idx+1}: {emb}")
