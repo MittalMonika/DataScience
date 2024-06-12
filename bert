@@ -186,3 +186,72 @@ final_summary = " ".join(short_summaries)
 # Print the final summary
 print("Final Compressed Summary:\n", final_summary)
 
+
+
+
+
+
+
+
+
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+import re
+
+# Load the fine-tuned model and tokenizer
+fine_tuned_model_path = "./fine-tuned-flan-t5"
+tokenizer = T5Tokenizer.from_pretrained(fine_tuned_model_path)
+model = T5ForConditionalGeneration.from_pretrained(fine_tuned_model_path)
+
+# The combined 3-page summary (replace with the actual 3-page summary text)
+three_page_summary = """
+[Your 3-page summary text goes here]
+"""
+
+# Custom prompt to guide summarization
+prompt = "Summarize the following text in bullet points highlighting the key points:"
+
+# Function to split text into chunks
+def split_into_chunks(text, max_length=512):
+    words = text.split()
+    chunks = []
+    current_chunk = []
+
+    for word in words:
+        current_chunk.append(word)
+        if len(" ".join(current_chunk)) > max_length:
+            chunks.append(" ".join(current_chunk[:-1]))
+            current_chunk = [word]
+    
+    chunks.append(" ".join(current_chunk))  # Add the last chunk
+    return chunks
+
+# Function to format the summary with bullet points and highlight key points
+def format_summary_with_highlights(text):
+    lines = text.split('. ')
+    bullet_points = []
+    for line in lines:
+        if line:
+            line = line.strip()
+            bullet_points.append(f"- **{line.split(':')[0]}:** {line.split(':', 1)[1].strip()}" if ':' in line else f"- {line}")
+    return '\n'.join(bullet_points)
+
+# Split the 3-page summary into chunks
+chunks = split_into_chunks(three_page_summary, max_length=512)
+
+# Generate summaries for each chunk
+short_summaries = []
+for chunk in chunks:
+    input_text = f"{prompt} {chunk}"
+    input_ids = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    summary_ids = model.generate(input_ids, max_length=150, num_beams=4, length_penalty=2.0, early_stopping=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    formatted_summary = format_summary_with_highlights(summary)
+    short_summaries.append(formatted_summary)
+
+# Combine the chunk summaries into a final summary
+final_summary = "\n".join(short_summaries)
+
+# Print the final summary
+print("Final Compressed Summary with Highlights:\n", final_summary)
+
+
