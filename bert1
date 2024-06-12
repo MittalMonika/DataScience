@@ -1,0 +1,39 @@
+import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+def preprocess_text(text):
+    # Remove special characters and multiple spaces
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'[^\w\s]', '', text)
+    return text
+
+def remove_similar_sentences(text, similarity_threshold=0.8):
+    sentences = text.split('. ')
+    preprocessed_sentences = [preprocess_text(sentence) for sentence in sentences]
+    
+    # Vectorize sentences
+    vectorizer = TfidfVectorizer().fit_transform(preprocessed_sentences)
+    vectors = vectorizer.toarray()
+    
+    # Compute similarity matrix
+    similarity_matrix = cosine_similarity(vectors)
+    
+    # Determine which sentences to keep
+    to_keep = np.ones(len(sentences), dtype=bool)
+    for i in range(len(sentences)):
+        for j in range(i + 1, len(sentences)):
+            if similarity_matrix[i, j] > similarity_threshold:
+                to_keep[j] = False
+    
+    # Filter sentences
+    filtered_sentences = [sentence for i, sentence in enumerate(sentences) if to_keep[i]]
+    return '. '.join(filtered_sentences)
+
+# Example usage
+with open('/mnt/data/summary.txt', 'r') as file:
+    summary_text = file.read()
+
+cleaned_summary = remove_similar_sentences(summary_text)
+print(cleaned_summary)
