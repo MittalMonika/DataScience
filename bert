@@ -122,3 +122,67 @@ print(summary_df)
 
 # Optionally, save the summary DataFrame to an Excel file
 summary_df.to_excel('summary_file.xlsx', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+# Load the fine-tuned model and tokenizer
+fine_tuned_model_path = "./fine-tuned-flan-t5"
+tokenizer = T5Tokenizer.from_pretrained(fine_tuned_model_path)
+model = T5ForConditionalGeneration.from_pretrained(fine_tuned_model_path)
+
+# Your 3-page summary (replace with actual text)
+three_page_summary = """
+[Your 3-page summary text goes here]
+"""
+
+# Function to split text into chunks
+def split_into_chunks(text, max_length=512):
+    words = text.split()
+    chunks = []
+    current_chunk = []
+
+    for word in words:
+        current_chunk.append(word)
+        if len(" ".join(current_chunk)) > max_length:
+            chunks.append(" ".join(current_chunk[:-1]))
+            current_chunk = [word]
+    
+    chunks.append(" ".join(current_chunk))  # Add the last chunk
+    return chunks
+
+# Split the 3-page summary into chunks
+chunks = split_into_chunks(three_page_summary, max_length=512)
+
+# Function to highlight headings and important points
+def highlight_text(text):
+    # Example: Adding custom tags (e.g., <h1> for headings, <strong> for important points)
+    highlighted_text = text.replace("Heading:", "<h1>Heading:</h1>").replace("Important:", "<strong>Important:</strong>")
+    return highlighted_text
+
+# Generate summaries for each chunk
+short_summaries = []
+for chunk in chunks:
+    input_text = "summarize: " + chunk
+    input_ids = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+    summary_ids = model.generate(input_ids, max_length=150, num_beams=4, length_penalty=2.0, early_stopping=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    highlighted_summary = highlight_text(summary)
+    short_summaries.append(highlighted_summary)
+
+# Combine the chunk summaries into a final summary
+final_summary = " ".join(short_summaries)
+
+# Print the final summary
+print("Final Compressed Summary:\n", final_summary)
+
