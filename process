@@ -1,0 +1,134 @@
+import re
+import string
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+# Download NLTK data
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Initialize stop words and lemmatizer
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+
+def clean_text(text):
+    # Remove special characters and digits
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    # Convert to lowercase
+    text = text.lower()
+    # Remove stop words
+    words = text.split()
+    words = [word for word in words if word not in stop_words]
+    # Lemmatize words
+    words = [lemmatizer.lemmatize(word) for word in words]
+    # Join words back into a single string
+    cleaned_text = ' '.join(words)
+    return cleaned_text
+
+# Apply cleaning function to combined text column
+df['cleaned_combined_text'] = df['combined_text'].apply(clean_text)
+
+print(df['cleaned_combined_text'])
+
+
+
+import pandas as pd
+
+# Example DataFrame
+data = {
+    'process_id': [1, 2, 3],
+    'process_name': ["Process A", "Process B", "Process C"],
+    'process_description': ["Description A", "Description B", "Description C"],
+    'agg_control_name': ["Control A", "Control B", "Control C"],
+    'agg_control_description': ["Control Desc A", "Control Desc B", "Control Desc C"],
+    'agg_business_specific_risk_description': ["Risk Desc A", "Risk Desc B", "Risk Desc C"],
+    'agg_risk_type_description': ["Risk Type A", "Risk Type B", "Risk Type C"],
+    'control_id': [101, 102, 103],
+    'control_name': ["Control Name A", "Control Name B", "Control Name C"],
+    'control_description': ["Control Desc A", "Control Desc B", "Control Desc C"]
+}
+
+df = pd.DataFrame(data)
+
+# Combine all relevant textual information into a single column
+df['combined_text'] = (
+    df['process_name'] + " " +
+    df['process_description'] + " " +
+    df['agg_control_name'] + " " +
+    df['agg_control_description'] + " " +
+    df['agg_business_specific_risk_description'] + " " +
+    df['agg_risk_type_description'] + " " +
+    df['control_name'] + " " +
+    df['control_description']
+)
+
+# Clean the combined text
+df['cleaned_combined_text'] = df['combined_text'].apply(clean_text)
+
+print(df['cleaned_combined_text'])
+
+unsupervised 
+
+from transformers import BertTokenizer, BertModel
+import torch
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+
+# Load FinBERT model and tokenizer
+tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-pretrain')
+model = BertModel.from_pretrained('yiyanghkust/finbert-pretrain')
+
+# Function to create embeddings
+def get_bert_embeddings(text):
+    inputs = tokenizer(text, return_tensors='pt', truncation=True, padding=True, max_length=512)
+    outputs = model(**inputs)
+    # Use the embeddings of the [CLS] token
+    embeddings = outputs.last_hidden_state[:, 0, :].detach().numpy()
+    return embeddings
+
+# Apply the function to cleaned combined texts
+df['embeddings'] = df['cleaned_combined_text'].apply(get_bert_embeddings)
+
+# Stack embeddings into a matrix
+embedding_matrix = np.vstack(df['embeddings'])
+
+# Compute cosine similarity
+similarity_matrix = cosine_similarity(embedding_matrix)
+
+# Print the similarity matrix
+print(similarity_matrix)
+
+supervised 
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+# Add a sample column 'control_applicability' indicating if control is applicable (1) or not (0)
+df['control_applicability'] = [1, 0, 1]  # Replace with actual applicability data
+
+X = np.vstack(df['embeddings'])
+y = df['control_applicability'].values
+
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train a logistic regression classifier
+clf = LogisticRegression()
+clf.fit(X_train, y_train)
+
+# Evaluate the model
+y_pred = clf.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy * 100:.2f}%")
+
+combined approach
+# Predict control applicability for test data
+y_pred_proba = clf.predict_proba(X_test)[:, 1]
+
+# Analyze results with high applicability score and low similarity score
+for i in range(len(y_test)):
+    if y_pred_proba[i] > 0.8:  # High applicability score threshold
+        for j in range(len(similarity_matrix)):
+            if similarity_matrix[j, i] < 0.5:  # Low similarity score threshold
+                print(f"Potential missing control detected for process {df['process_id'][i]} compared to process {df['process_id'][j]}.")
