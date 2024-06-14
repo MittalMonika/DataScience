@@ -1,3 +1,7 @@
+
+
+
+
 mport numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
@@ -73,3 +77,30 @@ def get_finbert_embeddings(text):
 
 # Get embeddings for control descriptions
 df['control_embeddings'] = df['cleaned_control_description'].apply(lambda x: get_finbert_embeddings(x))
+
+
+
+
+
+
+#-----test---
+for process in process_columns:
+    df[f'{process}_applicability_score'] = models[process].predict_proba(X)[:, 1]
+# Reshape the DataFrame to long format
+applicability_scores_columns = [f'{process}_applicability_score' for process in process_columns]
+
+# Prepare the long format DataFrame
+long_df = pd.melt(
+    df,
+    id_vars=['control_id'],
+    value_vars=applicability_scores_columns,
+    var_name='BP_name',
+    value_name='BP_applicability_score'
+)
+
+# Extract the process name from the column name
+long_df['BP_name'] = long_df['BP_name'].str.replace('_applicability_score', '')
+
+# Print the reshaped DataFrame
+print(long_df)
+
