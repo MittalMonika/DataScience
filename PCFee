@@ -1,0 +1,52 @@
+mport numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score
+
+# Combine embeddings
+X = np.stack(df['control_embeddings'].values)
+
+# Standardize the data
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# Train a logistic regression model for each process
+process_columns = [col for col in df.columns if col.startswith('BP_id')]
+
+# Dictionary to store models for each process
+models = {}
+for process in process_columns:
+    y = df[process]
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X, y)
+    models[process] = model
+
+    # Predict and evaluate (optional, since we are using the entire dataset)
+    y_pred = model.predict(X)
+    print(f"Accuracy for {process}:", accuracy_score(y, y_pred))
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Calculate cosine similarity between all control descriptions
+control_embeddings = np.stack(df['control_embeddings'].values)
+similarity_matrix = cosine_similarity(control_embeddings)
+
+# Adding similarity score to DataFrame for visualization or further processing
+df['similarity_scores'] = [similarity_matrix[i] for i in range(len(similarity_matrix))]
+
+
+# Determine missing controls based on thresholds
+threshold_applicability = 0.5
+threshold_similarity = 0.7
+
+def is_missing(row):
+    return any(row[f'{bp}_applicability_score'] > threshold_applicability for bp in ['BP_1', 'BP_2', 'BP_3']) and \
+           all(max(row['similarity_scores']) < threshold_similarity for bp in ['BP_1', 'BP_2', 'BP_3'])
+
+df['is_missing'] = df.apply(is_missing, axis=1)
+
+missing_controls = df[df['is_missing']]
+
+print("Missing Controls:")
+print(missing_controls[['control_id', 'control_name', 'BP_1_applicability_score', 'BP_2_applicability_score', 'BP_3_applicability_score', 'similarity_scores']])
