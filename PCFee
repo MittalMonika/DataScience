@@ -149,3 +149,59 @@ merged_df['mapped'] = merged_df['mapped'].fillna(0).astype(int)
 print(merged_df)
 
 
+
+
+
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
+import numpy as np
+
+# Sample DataFrame with control_id, BP_id, and applicability_score
+data = {
+    'control_id': [101, 102, 103, 104, 105],
+    'BP_id': ['BP1', 'BP2', 'BP1', 'BP3', 'BP2'],
+    'applicability_score': [0.9, 0.85, 0.95, 0.88, 0.91],
+    'control_embeddings': [
+        np.random.rand(768),
+        np.random.rand(768),
+        np.random.rand(768),
+        np.random.rand(768),
+        np.random.rand(768)
+    ]
+}
+
+df = pd.DataFrame(data)
+
+# Calculate cosine similarity between control embeddings
+control_embeddings = np.stack(df['control_embeddings'].values)
+similarity_matrix = cosine_similarity(control_embeddings)
+
+# Iterate over each control to find similar controls
+for i in range(len(df)):
+    similar_controls = []
+    for j in range(len(df)):
+        if i != j:
+            similarity_score = similarity_matrix[i][j]
+            similar_controls.append({
+                'similar_control_id': df.loc[j, 'control_id'],
+                'similarity_score': similarity_score,
+                'mapped': int(df.loc[j, 'BP_id'] == df.loc[i, 'BP_id'])
+            })
+    # Add each similar control as a new row to the DataFrame
+    for similar_control in similar_controls:
+        df = df.append({
+            'control_id': df.loc[i, 'control_id'],
+            'BP_id': df.loc[i, 'BP_id'],
+            'applicability_score': df.loc[i, 'applicability_score'],
+            'similar_control_id': similar_control['similar_control_id'],
+            'similarity_score': similar_control['similarity_score'],
+            'mapped': similar_control['mapped']
+        }, ignore_index=True)
+
+# Print the modified DataFrame
+print(df[['control_id', 'BP_id', 'applicability_score', 'similar_control_id', 'similarity_score', 'mapped']])
+
+
+
