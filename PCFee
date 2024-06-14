@@ -26,6 +26,15 @@ for process in process_columns:
     print(f"Accuracy for {process}:", accuracy_score(y, y_pred))
 
 
+# Calculate applicability scores for all controls for each process
+for process in process_columns:
+    df[f'{process}_applicability_score'] = models[process].predict_proba(X)[:, 1]
+
+# Example to print out the applicability scores
+applicability_scores_columns = [f'{process}_applicability_score' for process in process_columns]
+print(df[['control_id'] + applicability_scores_columns])
+
+
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Calculate cosine similarity between all control descriptions
