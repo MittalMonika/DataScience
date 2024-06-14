@@ -104,3 +104,5 @@ long_df['BP_name'] = long_df['BP_name'].str.replace('_applicability_score', '')
 # Print the reshaped DataFrame
 print(long_df)
 
+sorted_df = long_df.sort_values(by='BP_applicability_score', ascending=False)
+
