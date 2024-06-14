@@ -109,3 +109,43 @@ sorted_df = long_df.sort_values(by='BP_applicability_score', ascending=False)
 # Format applicability score to two decimal places
 sorted_df['BP_applicability_score'] = sorted_df['BP_applicability_score'].apply(lambda x: round(x, 2))
 
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Calculate cosine similarity between control embeddings
+control_embeddings = np.stack(df['control_embeddings'].values)
+similarity_matrix = cosine_similarity(control_embeddings)
+
+# Adding similarity score to DataFrame
+df['similarity_scores'] = [similarity_matrix[i] for i in range(len(similarity_matrix))]
+
+# Prepare a DataFrame to store the mappings (0 or 1)
+mapped_data = {
+    'control_id': [101, 102, 103, 104, 105],  # Example control IDs
+    'BP_id1': [1, 0, 1, 0, 1],  # Example mappings (0 or 1)
+    'BP_id2': [0, 1, 0, 1, 0],  # Example mappings (0 or 1)
+    'BP_id3': [1, 1, 0, 0, 1],  # Example mappings (0 or 1)
+    # Add more processes as needed
+}
+
+mapped_df = pd.DataFrame(mapped_data)
+
+# Reshape the mappings DataFrame to long format
+mapped_long_df = pd.melt(
+    mapped_df,
+    id_vars=['control_id'],
+    var_name='BP_name',
+    value_name='mapped'
+)
+
+# Combine the sorted DataFrame with the similarity scores and the mappings
+merged_df = pd.merge(sorted_df, mapped_long_df, on=['control_id', 'BP_name'], how='left')
+
+# Fill missing values in the 'mapped' column with 0
+merged_df['mapped'] = merged_df['mapped'].fillna(0).astype(int)
+
+# Print the merged DataFrame
+print(merged_df)
+
+
