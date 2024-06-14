@@ -106,3 +106,6 @@ print(long_df)
 
 sorted_df = long_df.sort_values(by='BP_applicability_score', ascending=False)
 
+# Format applicability score to two decimal places
+sorted_df['BP_applicability_score'] = sorted_df['BP_applicability_score'].apply(lambda x: round(x, 2))
+
