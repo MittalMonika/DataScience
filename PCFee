@@ -205,3 +205,77 @@ print(df[['control_id', 'BP_id', 'applicability_score', 'similar_control_id', 's
 
 
 
+
+
+
+
+
+
+
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
+import numpy as np
+
+# Sample dataframes
+df_sup_data = {
+    'control_id': [101, 102, 103, 104, 105],
+    'name_description': ['Desc 1', 'Desc 2', 'Desc 3', 'Desc 4', 'Desc 5'],
+    'embedding': [
+        np.random.rand(768),
+        np.random.rand(768),
+        np.random.rand(768),
+        np.random.rand(768),
+        np.random.rand(768)
+    ],
+    'Y': [[1, 0, 1], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 0]]
+}
+df_sup = pd.DataFrame(df_sup_data)
+
+sorted_df_data = {
+    'control_id': [101, 102, 103, 104, 105],
+    'BP_id': ['BP1', 'BP2', 'BP1', 'BP3', 'BP2'],
+    'applicability_score': [0.9, 0.85, 0.95, 0.88, 0.91]
+}
+sorted_df = pd.DataFrame(sorted_df_data)
+
+# Calculate cosine similarity between control embeddings in df_sup
+control_embeddings = np.stack(df_sup['embedding'].values)
+similarity_matrix = cosine_similarity(control_embeddings)
+
+# Function to find similar controls for a given control_id
+def find_similar_controls(control_id):
+    similar_controls = []
+    idx = df_sup[df_sup['control_id'] == control_id].index[0]
+    for i, score in enumerate(similarity_matrix[idx]):
+        if df_sup.loc[i, 'control_id'] != control_id:
+            similar_controls.append({
+                'similar_control_id': df_sup.loc[i, 'control_id'],
+                'similarity_score': score,
+                'mapped': any(df_sup.loc[i, 'Y'])
+            })
+    return similar_controls
+
+# Add similar controls to sorted_df
+similar_controls_list = []
+for control_id in sorted_df['control_id']:
+    similar_controls = find_similar_controls(control_id)
+    similar_controls_list.append(similar_controls)
+
+# Flatten the list of similar controls
+flattened_similar_controls = [item for sublist in similar_controls_list for item in sublist]
+
+# Create a DataFrame from the flattened list
+similar_controls_df = pd.DataFrame(flattened_similar_controls)
+
+# Merge similar_controls_df with sorted_df
+sorted_df = pd.merge(sorted_df, similar_controls_df, left_on='control_id', right_on='similar_control_id', how='left')
+
+# Drop unnecessary columns and print the result
+sorted_df = sorted_df.drop('similar_control_id', axis=1)
+print(sorted_df)
+
+
+
+
