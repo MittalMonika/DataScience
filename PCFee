@@ -278,4 +278,20 @@ print(sorted_df)
 
 
 
+def find_similar_controls(control_id):
+    similar_controls = []
+    idx = df_sup[df_sup['control_id'] == control_id].index[0]
+    for i, score in enumerate(similarity_matrix[idx]):
+        if df_sup.loc[i, 'control_id'] != control_id:
+            mapped_columns = ['BP_1', 'BP_2']  # Add all BP column names here
+            mapped_values = [df_sup.loc[i, col] for col in mapped_columns]
+            similar_controls.append({
+                'similar_control_id': df_sup.loc[i, 'control_id'],
+                'similarity_score': score,
+                'mapped': any(mapped_values)  # Check if any BP column is 1
+            })
+    return similar_controls
+
+
+
 
