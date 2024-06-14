@@ -50,3 +50,17 @@ missing_controls = df[df['is_missing']]
 
 print("Missing Controls:")
 print(missing_controls[['control_id', 'control_name', 'BP_1_applicability_score', 'BP_2_applicability_score', 'BP_3_applicability_score', 'similarity_scores']])
+
+
+
+
+def get_finbert_embeddings(text):
+    inputs = tokenizer(text, return_tensors='pt', truncation=True, padding=True, max_length=512)
+    with torch.no_grad():
+        outputs = model(**inputs)
+    # Use the CLS token embeddings
+    embeddings = outputs.last_hidden_state[:, 0, :]
+    return embeddings.cpu().numpy().flatten()
+
+# Get embeddings for control descriptions
+df['control_embeddings'] = df['cleaned_control_description'].apply(lambda x: get_finbert_embeddings(x))
