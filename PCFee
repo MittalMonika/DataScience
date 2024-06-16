@@ -295,3 +295,58 @@ def find_similar_controls(control_id):
 
 
 
+
+
+------
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
+import pandas as pd
+
+# Assuming 'embedding' column contains the embeddings as lists or arrays
+control_embeddings = np.stack(df_sup['embedding'].values)
+similarity_matrix = cosine_similarity(control_embeddings)
+
+# Initialize an empty list to store the data
+merged_data = []
+
+# Get the process columns (assumed to be named as 'BP_1', 'BP_2', ..., 'BP_n')
+process_columns = [col for col in df_sup.columns if col.startswith('BP_')]
+
+# Iterate over the similarity matrix
+for idx, control_id in enumerate(df_sup['control_id']):
+    for i, score in enumerate(similarity_matrix[idx]):
+        if df_sup.loc[i, 'control_id'] != control_id:
+            # Get the similar control ID
+            similar_control_id = df_sup.loc[i, 'control_id']
+            
+            # Check if the original control and the similar control belong to the same process
+            if not any(df_sup.loc[idx, process_columns] & df_sup.loc[i, process_columns]):
+                # Check if the similar control is already mapped to the same process
+                similar_control_mapped = int(any(df_sup.loc[i, process_columns] & df_sup.loc[idx, process_columns]))
+                
+                # Get the BP_id and applicability score for the original control
+                BP_id = sorted_df.loc[sorted_df['control_id'] == control_id, 'BP_id'].values[0]
+                applicability_score = sorted_df.loc[sorted_df['control_id'] == control_id, 'applicability_score'].values[0]
+                
+                # Add the data to the merged_data list
+                merged_data.append({
+                    'control_id': control_id,
+                    'BP_id': BP_id,
+                    'applicability_score': applicability_score,
+                    'similar_control_id': similar_control_id,
+                    'similarity_score': score,
+                    'mapped': similar_control_mapped
+                })
+
+# Create the final DataFrame
+final_df = pd.DataFrame(merged_data)
+
+# Print the final DataFrame
+print(final_df)
+
+
+
+
+
