@@ -30,5 +30,20 @@ most_relevant_index = similarity_scores.argmax()
 # Get the most relevant section from the report data
 most_relevant_section = df.iloc[most_relevant_index - 1]
 
+
+
+
+# Add similarity scores to the DataFrame
+df['similarity_score'] = similarity_scores
+
+# Sort the DataFrame based on similarity scores in descending order
+sorted_df = df.sort_values(by='similarity_score', ascending=False)
+
+# Print the top 3 matches
+print("Top 3 Matches:")
+for index, row in sorted_df.head(3).iterrows():
+    print(row)
+
+
 print("Most Relevant Section:")
 print(most_relevant_section)
