@@ -1,0 +1,7 @@
+with open_workbook('path_to_your_xlsb_file.xlsb') as wb:
+    with wb.get_sheet(1) as sheet:  # Assuming the data is on the first sheet
+        data = []
+        for row in sheet.rows():
+            data.append([item.v for item in row])
+
+df = pd.DataFrame(data[1:], columns=data[0])
