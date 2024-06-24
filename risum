@@ -68,3 +68,16 @@ merged_df = df.groupby('ID').agg(lambda x: custom_agg(x)).reset_index()
 
 print(merged_df)
 
+
+
+# Group by process_id and count unique risk_id and control_id
+result = df.groupby('process_id').agg({
+    'risk_id': 'nunique',
+    'control_id': 'nunique'
+}).reset_index()
+
+# Rename columns for clarity
+result.columns = ['process_id', 'unique_risk_count', 'unique_control_count']
+
+print(result)
+
