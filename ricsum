@@ -3,6 +3,20 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from PyPDF2 import PdfReader
 import os
 
+def load_file(file_path):
+    _, file_extension = os.path.splitext(file_path)
+    
+    if file_extension.lower() == '.pdf':
+        return load_pdf(file_path)
+    elif file_extension.lower() == '.txt':
+        return load_text(file_path)
+    else:
+        raise ValueError(f"Unsupported file format: {file_extension}")
+
+ef load_text(file_path):
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return file.read()
+
 def load_pdf(file_path):
     reader = PdfReader(file_path)
     text = ""
