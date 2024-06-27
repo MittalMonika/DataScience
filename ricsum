@@ -67,16 +67,11 @@ def main(file_path, output_dir, keyword="regulation"):
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
 
-    # Save full text summary
-    full_text_summary_file = os.path.join(output_dir, "full_text_summary.txt")
-    save_summary(full_text_summary, full_text_summary_file)
-
-    # Save section-based summaries
-    for i, section_summary in enumerate(section_summaries, start=1):
-        section_summary_file = os.path.join(output_dir, f"section_{i}_summary.txt")
-        save_summary(section_summary, section_summary_file)
-
+    
 # Example usage
 file_path = "path/to/your/document.pdf"
 output_dir = "summaries"
-main(file_path, output_dir)
+
+# Keywords to combine into one section
+keywords_to_combine = ["regulation", "regulatory", "compliance"]
+main(file_path, output_dir, keywords_to_combine)
