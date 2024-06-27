@@ -85,3 +85,20 @@ full_text_summary_file = os.path.join(output_dir, f"{base_name}_full_text_summar
     # Save combined section summary with the base name of the input file
     combined_summary_file = os.path.join(output_dir, f"{base_name}_combined_section_summary.txt")
     save_summary(combined_summary, combined_summary_file)
+
+
+def compute_rouge(reference_summary, generated_summary):
+    rouge = load_metric('rouge')
+    scores = rouge.compute(predictions=[generated_summary], references=[reference_summary])
+    return scores
+
+ Load the reference summary
+    reference_summary = load_summary(reference_summary_path)
+
+    # Compute the ROUGE score between the full text summary and the reference summary
+    rouge_scores = compute_rouge(reference_summary, full_text_summary)
+
+    # Print the ROUGE scores
+    print(f"ROUGE scores for {base_name}:")
+    print(rouge_scores)
+
