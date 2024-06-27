@@ -21,6 +21,8 @@ def chunk_text(text, chunk_size=1000):
     return chunks
 
 def split_sections(text, keywords):
+    if isinstance(keywords, str):
+        keywords = [keywords]
     # Join the keywords into a regex pattern
     keywords_pattern = '|'.join([rf'\b{keyword}\b' for keyword in keywords])
     # Split the text using the pattern
@@ -54,8 +56,13 @@ def main(file_path, output_dir, keyword="regulation"):
     # Generate full text summary
     full_text_summary = generate_summary(cleaned_text, model, tokenizer)
 
-    # Generate section-based summaries
-    section_summaries = [generate_summary(section, model, tokenizer) for section in sections]
+    # Combine sections containing any of the keywords
+    combined_section = split_sections(cleaned_text, keywords)
+    combined_section_text = " ".join(combined_section)
+
+    # Generate summary for the combined section
+    combined_summary = generate_summary(combined_section_text, model, tokenizer)
+
 
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
