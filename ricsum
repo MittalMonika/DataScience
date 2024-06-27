@@ -1,0 +1,71 @@
+import re
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+from PyPDF2 import PdfReader
+import os
+
+def load_pdf(file_path):
+    reader = PdfReader(file_path)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() + "\n"
+    return text
+
+def clean_text(text):
+    text = re.sub(r'\s+', ' ', text)  # Remove extra whitespace
+    text = re.sub(r'\d+', '', text)  # Remove digits if needed
+    return text.strip()
+
+def chunk_text(text, chunk_size=1000):
+    words = text.split()
+    chunks = [' '.join(words[i:i + chunk_size]) for i in range(0, len(words), chunk_size)]
+    return chunks
+
+def split_sections(text, keyword="regulation"):
+    sections = re.split(rf'(?i)\b{keyword}\b', text)
+    sections = [section.strip() for section in sections if section.strip()]
+    return sections
+
+def generate_summary(text, model, tokenizer, max_length=150):
+    inputs = tokenizer.encode("summarize: " + text, return_tensors="pt", max_length=512, truncation=True)
+    summary_ids = model.generate(inputs, max_length=max_length, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
+
+def save_summary(summary, file_name):
+    with open(file_name, 'w') as file:
+        file.write(summary)
+
+def main(file_path, output_dir, keyword="regulation"):
+    # Load and preprocess the document
+    raw_text = load_pdf(file_path)
+    cleaned_text = clean_text(raw_text)
+    chunks = chunk_text(cleaned_text)
+    sections = split_sections(cleaned_text, keyword)
+    
+    # Load the summarization model
+    model_name = "flan-t5-base"
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+
+    # Generate full text summary
+    full_text_summary = generate_summary(cleaned_text, model, tokenizer)
+
+    # Generate section-based summaries
+    section_summaries = [generate_summary(section, model, tokenizer) for section in sections]
+
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Save full text summary
+    full_text_summary_file = os.path.join(output_dir, "full_text_summary.txt")
+    save_summary(full_text_summary, full_text_summary_file)
+
+    # Save section-based summaries
+    for i, section_summary in enumerate(section_summaries, start=1):
+        section_summary_file = os.path.join(output_dir, f"section_{i}_summary.txt")
+        save_summary(section_summary, section_summary_file)
+
+# Example usage
+file_path = "path/to/your/document.pdf"
+output_dir = "summaries"
+main(file_path, output_dir)
