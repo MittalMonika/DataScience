@@ -102,3 +102,27 @@ def compute_rouge(reference_summary, generated_summary):
     print(f"ROUGE scores for {base_name}:")
     print(rouge_scores)
 
+
+if combined_f1 > full_text_f1:
+        chosen_summary = combined_summary
+    else:
+        chosen_summary = full_text_summary
+
+    return {
+        "rouge_scores_full_text": rouge_scores_full_text,
+        "rouge_scores_combined": rouge_scores_combined,
+        "chosen_summary": chosen_summary
+    }
+
+results = main(file_path, output_dir, keywords_to_combine, reference_summary_path)
+
+# Print the ROUGE scores
+print("ROUGE scores for full text summary:")
+print(results["rouge_scores_full_text"])
+
+print("ROUGE scores for combined section summary:")
+print(results["rouge_scores_combined"])
+
+print("Chosen summary:")
+print(results["chosen_summary"])
+
