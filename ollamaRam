@@ -1,0 +1,40 @@
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.llms.ollama import Ollama
+import gradio as gr
+
+# Load documents from the directory
+documents = SimpleDirectoryReader("data").load_data()
+
+# Set up the embedding model and the LLM
+Settings.embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-base-en-v1.5")
+Settings.llm = Ollama(model="llama3", request_timeout=360)
+
+# Create the index from the documents
+index = VectorStoreIndex.from_documents(documents)
+query_engine = index.as_query_engine()
+
+# Define the function to handle summarization
+def rag_info(question="What is transformer in detail?", task="summarize"):
+    response = query_engine.query(question)
+    retrieved_text = response.response
+    
+    if task == "summarize":
+        # Use the Ollama model to summarize the retrieved text
+        summary_input = f"Summarize the following text: {retrieved_text}"
+        summary_response = Settings.llm.generate(summary_input)
+        return summary_response.response
+    else:
+        return retrieved_text
+
+# Set up the Gradio interface
+iface = gr.Interface(
+    fn=rag_info,
+    inputs=["text", gr.inputs.Radio(["summarize", "retrieve"], label="Task")],
+    outputs="text",
+    title="Interview with Raman Khurana",
+    description="Ask me anything about my academic career via this friendly chatbot. (Who is Raman Khurana in detail? Who is Raman Khurana?, What are his major projects? main achievement?)"
+)
+
+# Launch the Gradio interface
+iface.launch(share=True)
