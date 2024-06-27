@@ -139,7 +139,7 @@ print(results["rouge_scores_combined"])
 
 print("Chosen summary:")
 print(results["chosen_summary"])
-
+mean_similarity_scores = df_sorted.groupby('Obligation ID')['Similarity_Score'].mean()
 
 df_sorted = df.sort_values(by='Similarity_Score', ascending=False).reset_index(drop=True)
 
