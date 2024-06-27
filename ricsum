@@ -140,3 +140,6 @@ print(results["rouge_scores_combined"])
 print("Chosen summary:")
 print(results["chosen_summary"])
 
+
+df_sorted = df.sort_values(by='Similarity_Score', ascending=False).reset_index(drop=True)
+
