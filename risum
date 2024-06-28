@@ -166,3 +166,29 @@ def clean_text(text, punctuation_list, words):
 
 pattern = r'([' + re.escape(''.join(punctuation_list)) + r'])(\s*\w)|(\w\s*)[' + re.escape(''.join(punctuation_list)) + r']'
 cleaned_text = re.sub(pattern, lambda m: m.group(2) if m.group(2) else m.group(3), text)
+
+
+def jaccard_similarity(text1, text2):
+    # Tokenize the texts by converting them to lowercase and splitting by spaces
+    set1 = set(text1.lower().split())
+    set2 = set(text2.lower().split())
+    
+    # Calculate the intersection and union of the two sets
+    intersection = set1.intersection(set2)
+    union = set1.union(set2)
+    
+    # Calculate Jaccard similarity
+    if len(union) == 0:
+        return 0.0
+    jaccard_sim = len(intersection) / len(union)
+    
+    return jaccard_sim
+
+# Example texts
+text1 = "The regulation aims to enhance transparency and accountability within the financial sector."
+text2 = "The new regulation aims to improve transparency and accountability in the financial industry."
+
+# Calculate Jaccard similarity
+similarity = jaccard_similarity(text1, text2)
+print(f"Jaccard Similarity: {similarity:.4f}")
+
