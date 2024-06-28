@@ -107,3 +107,4 @@ for i, section in enumerate(relevant_sections):
     print(section)
     print("-------------------")
 
+pattern = rf'(^|\s)({re.escape(pattern)})([' + re.escape(''.join(punctuation_list)) + r']|\s|$)'
