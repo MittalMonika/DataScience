@@ -156,3 +156,12 @@ cleaned_text = clean_text(text, pun)
         pattern = rf'(^|\s)({re.escape(pattern)})([' + re.escape(''.join(punctuation_list)) + r']|\s|$)'
 
 
+def clean_text(text, punctuation_list, words):
+    # Create a regex pattern to match punctuation marks from the list that appear before or after specific words
+    pattern = r'([' + re.escape(''.join(punctuation_list)) + r']?)(\s*)(' + '|'.join(re.escape(word) for word in words) + r')(\s*)([' + re.escape(''.join(punctuation_list)) + r']?)'
+    
+    # Use regex to remove punctuation marks that meet the condition
+    cleaned_text = re.sub(pattern, r'\3', text)
+    return cleaned_text
+
+
