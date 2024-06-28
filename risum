@@ -153,3 +153,6 @@ def clean_text(text, punctuation_list):
 cleaned_text = clean_text(text, pun)
 
 
+        pattern = rf'(^|\s)({re.escape(pattern)})([' + re.escape(''.join(punctuation_list)) + r']|\s|$)'
+
+
