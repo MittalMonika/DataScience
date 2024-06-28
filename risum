@@ -165,3 +165,4 @@ def clean_text(text, punctuation_list, words):
     return cleaned_text
 
 pattern = r'([' + re.escape(''.join(punctuation_list)) + r'])(\s*\w)|(\w\s*)[' + re.escape(''.join(punctuation_list)) + r']'
+cleaned_text = re.sub(pattern, lambda m: m.group(2) if m.group(2) else m.group(3), text)
