@@ -192,3 +192,25 @@ text2 = "The new regulation aims to improve transparency and accountability in t
 similarity = jaccard_similarity(text1, text2)
 print(f"Jaccard Similarity: {similarity:.4f}")
 
+
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity, pairwise_distances
+import numpy as np
+
+# Example texts
+text1 = "The regulation aims to enhance transparency and accountability within the financial sector."
+text2 = "The new regulation aims to improve transparency and accountability in the financial industry."
+
+# Cosine Similarity with TF-IDF
+tfidf_vectorizer = TfidfVectorizer()
+tfidf_matrix = tfidf_vectorizer.fit_transform([text1, text2])
+cosine_sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0, 0]
+print(f"Cosine Similarity: {cosine_sim:.4f}")
+
+# Jaccard Similarity with CountVectorizer (binary)
+count_vectorizer = CountVectorizer(binary=True)
+X = count_vectorizer.fit_transform([text1, text2])
+jaccard_sim = 1 - pairwise_distances(X, metric="jaccard")[0, 1]
+print(f"Jaccard Similarity: {jaccard_sim:.4f}")
+
+
