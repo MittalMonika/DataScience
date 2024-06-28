@@ -51,3 +51,59 @@ def summarize_text(text, max_length=150, min_length=30, length_penalty=2.0, num_
 # Summarize the preprocessed text
 summary = summarize_text(preprocessed_text)
 print(summary)
+
+
+
+
+# Example text with regulatory and bullet points structure
+text = """
+Regulatory Section:
+- This is a bullet point under the regulatory section.
+- Another bullet point.
+This paragraph is also part of the regulatory section.
+
+Non-regulatory Section:
+This paragraph does not start with a regulatory term.
+
+Regulatory Section 2:
+- Bullet point under another regulatory section.
+- Another bullet point.
+"""
+
+def extract_relevant_sections(text, keywords):
+    paragraphs = text.split("\n\n")  # Split text by double newline assuming paragraphs are separated
+    relevant_sections = []
+    current_section = []
+
+    for paragraph in paragraphs:
+        # Check if the paragraph starts with any of the keywords in lowercase
+        if any(keyword in paragraph.lower() for keyword in keywords):
+            # Add current section to relevant_sections if it's not empty
+            if current_section:
+                relevant_sections.append("\n".join(current_section))
+                current_section = []  # Reset current_section
+
+            # Start a new section with the current paragraph
+            current_section.append(paragraph.strip())
+        else:
+            # Continue adding to the current section if not a new regulatory paragraph
+            current_section.append(paragraph.strip())
+
+    # Add the last section if it's not empty
+    if current_section:
+        relevant_sections.append("\n".join(current_section))
+
+    return relevant_sections
+
+# Keywords to identify regulatory sections
+keywords = ["regulatory"]
+
+# Extract relevant sections
+relevant_sections = extract_relevant_sections(text, keywords)
+
+# Print each relevant section separately
+for i, section in enumerate(relevant_sections):
+    print(f"Section {i + 1}:")
+    print(section)
+    print("-------------------")
+
