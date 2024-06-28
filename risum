@@ -141,3 +141,15 @@ print("\nMost Relevant Section:")
 print(most_relevant_section)
 
 
+def clean_text(text, punctuation_list):
+    # Create regex pattern to match any of the punctuation marks in the list
+    pattern = r'[' + re.escape(''.join(punctuation_list)) + r']'
+    
+    # Use regex to remove punctuation marks
+    cleaned_text = re.sub(pattern, '', text)
+    return cleaned_text
+
+# Clean the example text using the list of punctuation marks
+cleaned_text = clean_text(text, pun)
+
+
