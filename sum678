@@ -1,0 +1,53 @@
+import re
+from transformers import T5Tokenizer, T5ForConditionalGeneration
+
+# Define the text
+text = """
+The new regulation in the United States requires all financial institutions to comply with XYZ standards.
+This regulation aims to enhance transparency and accountability within the financial sector.
+Non-compliance with these standards may result in severe penalties and legal actions.
+Financial institutions must implement the necessary measures to ensure full compliance with the new regulation.
+The European Union has also introduced similar regulations recently.
+
+* Tried the kafka-flink interface using docker
+    * worked fine
+    * kafka working (without PV)
+* REFIT not deployed
+* Tried to deploy kafka with PV mounted to the pods,
+    * did not work, similar errors like in the REFIT.
+* Times-Net: This again seems to be forecasting only the multi-variate time series data,
+    * does not take into account the static and exogenous variables
+    * does not take care of the target variable [not sure if that is feasible with this model]
+"""
+
+# Define keywords
+keywords = ["regulation", "compliance", "standards", "penalties", "legal actions"]
+
+# Preprocess text by identifying relevant paragraphs
+def extract_paragraphs_with_keywords(text, keywords):
+    paragraphs = text.split("\n")
+    relevant_paragraphs = [para for para in paragraphs if any(keyword in para.lower() for keyword in keywords)]
+    return relevant_paragraphs
+
+relevant_paragraphs = extract_paragraphs_with_keywords(text, keywords)
+preprocessed_text = "\n".join(relevant_paragraphs) + "\nKeywords: " + ", ".join(keywords)
+
+# Load the Flan-T5 model and tokenizer
+tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-large")
+model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-large")
+
+def summarize_text(text, max_length=150, min_length=30, length_penalty=2.0, num_beams=4):
+    # Preprocess the text for summarization
+    input_text = "summarize: " + text
+    inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=512, truncation=True)
+
+    # Generate the summary
+    summary_ids = model.generate(inputs, max_length=max_length, min_length=min_length, length_penalty=length_penalty, num_beams=num_beams, early_stopping=True)
+    
+    # Decode the summary
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
+
+# Summarize the preprocessed text
+summary = summarize_text(preprocessed_text)
+print(summary)
