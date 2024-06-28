@@ -213,4 +213,21 @@ X = count_vectorizer.fit_transform([text1, text2])
 jaccard_sim = 1 - pairwise_distances(X, metric="jaccard")[0, 1]
 print(f"Jaccard Similarity: {jaccard_sim:.4f}")
 
+def compute_jaccard_similarities(all_text_clean):
+    # Extract the summarized text and texts to compare
+    summarized_text = all_text_clean[0]
+    texts_to_compare = all_text_clean[1:]
+    
+    # Initialize CountVectorizer with binary=True to get binary term frequencies
+    count_vectorizer = CountVectorizer(binary=True)
+    
+    # Fit and transform the texts
+    X = count_vectorizer.fit_transform([summarized_text] + texts_to_compare)
+    
+    # Calculate Jaccard similarity using pairwise_distances
+    jaccard_similarities = 1 - pairwise_distances(X, metric='jaccard')[0, 1:]
+    
+    return jaccard_similarities
 
+# Calculate Jaccard similarity scores
+similarity_scores_jaccard = compute_jaccard_similarities(all_text_clean)
