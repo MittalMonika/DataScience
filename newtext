@@ -1,0 +1,19 @@
+mport pandas as pd
+
+# Create a DataFrame with a column named 'text'
+data = {
+    'text': [
+        """The impact of climate change on global temperatures has been profound. 
+        Over the last century, the Earth's temperature has increased by approximately 1 degree Celsius, 
+        leading to significant changes in weather patterns and sea levels. This warming trend has accelerated 
+        in recent decades, attributed largely to increased emissions of greenhouse gases by human activities. 
+        As a result, polar ice caps are melting at an unprecedented rate, sea levels are rising, and weather 
+        patterns are becoming more extreme. The need for immediate and significant action to reduce carbon emissions 
+        and mitigate climate change effects is more urgent than ever."""
+    ]
+}
+
+df = pd.DataFrame(data)
+
+# Display the DataFrame
+print(df)
