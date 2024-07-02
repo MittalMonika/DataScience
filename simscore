@@ -87,3 +87,60 @@ df2['Weighted_Similarity'] = weighted_similarities
 tools.display_dataframe_to_user(name="Second Data Frame with Weighted Similarity Scores", dataframe=df2)
 
 df2[['ID', 'Title', 'Weighted_Similarity']]
+
+
+
+
+
+
+
+
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
+
+# Example DataFrame setup
+data = {
+    'summary': ['Summary1', 'Summary2'],
+    'country_name': ['USA', None],  # Assume second entry has no country_name
+    'business_affected': ['Business1', 'Business2'],
+    'text_to_search': ['Text1', 'Text2']
+}
+df = pd.DataFrame(data)
+
+# Database DataFrame
+db_data = {
+    'text': ['Text about USA', 'General text', 'Other text']
+}
+db_df = pd.DataFrame(db_data)
+
+# Augmenting text_to_search with country_name
+weight_factor = 5  # Adjust the weight factor as needed
+
+# Function to concatenate country name if not None or empty
+def augment_text(row):
+    country_name = row['country_name']
+    text_to_search = row['text_to_search']
+    if country_name and country_name.strip():
+        return (country_name + ' ') * weight_factor + text_to_search
+    else:
+        return text_to_search
+
+df['augmented_text'] = df.apply(augment_text, axis=1)
+
+# Create a TF-IDF Vectorizer
+tfidf_vectorizer = TfidfVectorizer()
+
+# Fit and transform the primary DataFrame
+tfidf_matrix = tfidf_vectorizer.fit_transform(df['augmented_text'])
+
+# Transform the database DataFrame
+db_tfidf_matrix = tfidf_vectorizer.transform(db_df['text'])
+
+# Calculate cosine similarity
+cosine_sim = cosine_similarity(tfidf_matrix, db_tfidf_matrix)
+
+# Display the cosine similarity scores
+print(cosine_sim)
+
