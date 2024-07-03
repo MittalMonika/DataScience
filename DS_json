@@ -1,0 +1,48 @@
+import json
+import re
+
+def preprocess_data(data):
+    # Remove leading and trailing single quotes if they exist
+    if data.startswith("'''"):
+        data = data[3:]
+    if data.endswith("'''"):
+        data = data[:-3]
+    
+    # Remove any non-JSON prefix (e.g., "json" prefix)
+    data = re.sub(r'^\s*json', '', data, flags=re.IGNORECASE)
+    
+    # Ensure proper JSON formatting
+    data = data.strip()
+    if not data.startswith('{'):
+        data = '{' + data
+    if not data.endswith('}'):
+        data = data + '}'
+    
+    return data
+
+def safe_load_json(data):
+    data = preprocess_data(data)
+    
+    try:
+        data_dict = json.loads(data)
+        return data_dict
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
+        return None
+
+# Test cases
+data1 = "'''json{fgg: abc, name : monika}'''"
+data2 = "fgg: abc, name : monika}"
+
+data_dict1 = safe_load_json(data1)
+data_dict2 = safe_load_json(data2)
+
+if data_dict1 is not None:
+    print("JSON loaded successfully from data1:", data_dict1)
+else:
+    print("Failed to load JSON from data1.")
+
+if data_dict2 is not None:
+    print("JSON loaded successfully from data2:", data_dict2)
+else:
+    print("Failed to load JSON from data2.")
