@@ -1,3 +1,4 @@
+
 import fitz  # PyMuPDF
 import pandas as pd
 
@@ -85,3 +86,28 @@ embeddings = get_finbert_embeddings(control_descriptions)
 # Print the embeddings
 for idx, emb in enumerate(embeddings):
     print(f"Embedding for control {idx+1}: {emb}")
+
+
+
+message = [
+    {"role":"system","content":f"""
+As an experienced legal analyst, create a brief summary in context of Regulatory with the findings.
+Along with summary answer the following questions and only add information if present else says None 
+DONOT modify the text.  Provide output in json format
+What was cited by the regulator and its defination ? 
+Where (country) the event occur? 
+which regulator issued the finding?
+which buisness are impacted?
+Does the document indicate what we should have done?
+Was any refernce made to a new or revised law or regulation ?
+What was cited by the regulator and what was its defination ? 
+Donot mention any other finding or action needed and just be concise and a paragraph 
+"""},       
+        {"role":"user","content":results['document_text']
+               }]
+
+deployment_id = "gpt-4-turbo-2024-04-09"
+
+data  = completion_using_openai_sdk(deployment_id, message,max_tokens = 2100)
+
+'{\n  "summary": "The FDIC conducted a two-week examination of a bank\'s compliance with 12 C.F.R. Part 370, focusing on the bank\'s IT system\'s ability to accurately calculate and report deposit insurance for each account in the event of bank failure. The examination revealed non-compliance with several provisions of the rule, although no enforcement action was required. The bank must respond formally by July 29 and has begun enhancing processes and controls.",\n  "What was cited by the regulator and its definition?": "12 C.F.R. Part 370, which requires covered institutions to configure IT systems to accurately calculate and report deposit insurance for each deposit account in a timely manner in the event of the bank\'s failure.",\n  "Where (country) the event occur?": "None",\n  "Which regulator issued the finding?": "FDIC",\n  "Which business are impacted?": "Business Banking, Consumer Banking",\n  "Does the document indicate what we should have done?": "None",\n  "Was any reference made to a new or revised law or regulation?": "None"\n}'
