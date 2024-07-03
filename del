@@ -88,6 +88,23 @@ for idx, emb in enumerate(embeddings):
     print(f"Embedding for control {idx+1}: {emb}")
 
 
+{
+  "role": "system",
+  "content": """
+As an experienced legal analyst, create a brief summary focused on regulatory findings.
+Along with the summary, answer the following questions and only add information if present, else state 'None'. 
+DO NOT modify the text. Provide the output in JSON format.
+What regulatory requirement was cited by the regulator, and how does it relate to the institution's operations? 
+Where (country) did the event occur? 
+Which regulator issued the finding?
+Which businesses are impacted?
+Does the document indicate what should have been done?
+Was any reference made to a new or revised law or regulation?
+Provide a concise summary in a paragraph without mentioning any other findings or actions needed.
+"""
+}
+
+
 
 message = [
     {"role":"system","content":f"""
