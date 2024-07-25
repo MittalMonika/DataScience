@@ -129,3 +129,76 @@ data  = completion_using_openai_sdk(deployment_id, message,max_tokens = 2100)
 
 '{\n  "summary": "The FDIC conducted a two-week examination of a bank\'s compliance with 12 C.F.R. Part 370, focusing on the bank\'s IT system\'s ability to accurately calculate and report deposit insurance for each account in the event of bank failure. The examination revealed non-compliance with several provisions of the rule, although no enforcement action was required. The bank must respond formally by July 29 and has begun enhancing processes and controls.",\n  "What was cited by the regulator and its definition?": "12 C.F.R. Part 370, which requires covered institutions to configure IT systems to accurately calculate and report deposit insurance for each deposit account in a timely manner in the event of the bank\'s failure.",\n  "Where (country) the event occur?": "None",\n  "Which regulator issued the finding?": "FDIC",\n  "Which business are impacted?": "Business Banking, Consumer Banking",\n  "Does the document indicate what we should have done?": "None",\n  "Was any reference made to a new or revised law or regulation?": "None"\n}'
  Experimenting/exploring new technologies and methodologies related to Gen AI (LLM) and laying the playground for team members ensuring we are all equipped to innovate and succeed together
+
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Assuming clean_text function is defined and imported
+df['process_description'] = df['process_description'].apply(clean_text)
+df['risk_type_description'] = df['risk_type_description'].apply(clean_text)
+df['control_description'] = df['control_description'].apply(clean_text)
+
+# Vectorizing text
+vectorizer = TfidfVectorizer(max_features=100)
+features = vectorizer.fit_transform(df['process_description'] + ' ' + df['risk_type_description'] + ' ' + df['control_description']).toarray()
+
+
+import networkx as nx
+
+G = nx.Graph()
+for index, row in df.iterrows():
+    process_node = f"Process_{row['process_id']}"
+    risk_node = f"Risk_{row['risk_id']}"
+    control_node = f"Control_{row['control_id']}"
+
+    G.add_node(process_node, type='process', features=features[index])
+    G.add_node(risk_node, type='risk', features=features[index])
+    G.add_node(control_node, type='control', features=features[index])
+
+    G.add_edge(process_node, risk_node)
+    G.add_edge(risk_node, control_node)
+
+
+import torch
+from torch_geometric.nn import GCNConv
+import torch.nn.functional as F
+
+class GNNModel(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super(GNNModel, self).__init__()
+        self.conv1 = GCNConv(input_dim, hidden_dim)
+        self.conv2 = GCNConv(hidden_dim, hidden_dim)
+
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        x = F.relu(self.conv1(x, edge_index))
+        x = F.dropout(x, training=self.training)
+        x = self.conv2(x, edge_index)
+        return x
+
+model = GNNModel(input_dim=100, hidden_dim=64)  # Assume feature dimension is 100
+
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+criterion = torch.nn.BCEWithLogitsLoss()
+
+for epoch in range(epochs):
+    model.train()
+    optimizer.zero_grad()
+    out = model(data)
+    loss = criterion(out[data.train_mask], data.y[data.train_mask])
+    loss.backward()
+    optimizer.step()
+
+
+
+model.eval()
+with torch.no_grad():
+    embeddings = model(data)
+    similarity_matrix = cosine_similarity(embeddings.numpy())
+    # Analyze similarities to suggest missing controls
+
+
+
+
+ have process_id, process_name, process_description, risk id, risk type description, buisness specific risk , control_id, control name and ontrol description. i need to find missing control with in dataset relying on the logic similar processes should have similar controls.  process_id,risk id,control_id,  are number. they are meaningless but the number provided to specific things 
