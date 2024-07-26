@@ -200,5 +200,39 @@ with torch.no_grad():
 
 
 
+import torch
+from torch_geometric.data import Data
+
+# Example of initializing node indices for unique entities
+process_indices = {pid: idx for idx, pid in enumerate(sorted(df['process_id'].unique()))}
+risk_indices = {rid: idx + len(process_indices) for idx, rid in enumerate(sorted(df['risk_id'].unique()))}
+control_indices = {cid: idx + len(process_indices) + len(risk_indices) for idx, cid in enumerate(sorted(df['control_id'].unique()))}
+
+# Preparing the edge indices
+edge_sources = []
+edge_targets = []
+
+for _, row in df.iterrows():
+    # Get indices from mappings
+    process_idx = process_indices[row['process_id']]
+    risk_idx = risk_indices[row['risk_id']]
+    control_idx = control_indices[row['control_id']]
+    
+    # Connecting processes to risks (directional: process -> risk)
+    edge_sources.append(process_idx)
+    edge_targets.append(risk_idx)
+    
+    # Connecting risks to controls (directional: risk -> control)
+    edge_sources.append(risk_idx)
+    edge_targets.append(control_idx)
+
+# Creating the edge_index tensor for PyTorch Geometric
+edge_index = torch.tensor([edge_sources, edge_targets], dtype=torch.long)
+
+# Assuming 'features' is a tensor with node features for all nodes
+graph_data = Data(x=features, edge_index=edge_index)
+
+
+
 
  have process_id, process_name, process_description, risk id, risk type description, buisness specific risk , control_id, control name and ontrol description. i need to find missing control with in dataset relying on the logic similar processes should have similar controls.  process_id,risk id,control_id,  are number. they are meaningless but the number provided to specific things 
