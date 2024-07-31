@@ -1,0 +1,41 @@
+import pandas as pd
+
+# Sample DataFrame
+data = {
+    'column1': ['regulation and compliance', 'finance report', 'investment law', 'loan details'],
+    'column2': ['risk analysis', 'banking regulation', 'market trends', 'financial law'],
+    'column3': ['summary of findings', 'report details', 'document review', 'law and policy'],
+    'country': ['USA', 'UK', 'Canada', 'Australia'],
+    'business_impact': ['High', 'Medium', 'Low', 'Medium']
+}
+df = pd.DataFrame(data)
+
+# Keywords to search for
+keywords = ['regulation', 'compliance', 'law']
+
+# Additional filters
+country_text = 'UK'
+business_impact = 'Medium'
+
+# Combine all columns into a single string for each row
+combined_columns = df.apply(lambda x: ' '.join(x.astype(str).str.lower()), axis=1)
+
+# Check if any keyword is in the combined string
+keyword_pattern = '|'.join(keywords)
+keyword_filtered_df = df[combined_columns.str.contains(keyword_pattern, na=False)]
+
+# Filter based on country_text if provided, otherwise fill with None
+if country_text:
+    country_filtered_df = keyword_filtered_df[keyword_filtered_df['country'] == country_text]
+else:
+    country_filtered_df = keyword_filtered_df.copy()
+    country_filtered_df['country'] = None
+
+# Filter based on business_impact if provided
+if business_impact:
+    final_filtered_df = country_filtered_df[country_filtered_df['business_impact'] == business_impact]
+else:
+    final_filtered_df = country_filtered_df.copy()
+    final_filtered_df['business_impact'] = None
+
+print(final_filtered_df)
