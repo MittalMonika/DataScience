@@ -134,3 +134,86 @@ top_k_results = semantic_search(query, embeddings, df, top_k=5)
 print(top_k_results)
 
 
+import pandas as pd
+from rank_bm25 import BM25Okapi
+import string
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+from transformers import AutoTokenizer, AutoModel
+import torch
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Sample DataFrame
+data = {
+    'column1': ['This is a sample text', 'Another example sentence', 'More data in here'],
+    'column2': ['Different text example', 'More samples of text', 'Another text entry']
+}
+
+df = pd.DataFrame(data)
+
+# Combine the text from different columns into one for each row
+df['combined_text'] = df.apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+
+# Preprocess the text: Lowercase, remove punctuation, and stopwords
+def preprocess(text):
+    text = text.lower()
+    text = ''.join([char for char in text if char not in string.punctuation])
+    text = ' '.join([word for word in text.split() if word not in ENGLISH_STOP_WORDS])
+    return text
+
+df['processed_text'] = df['combined_text'].apply(preprocess)
+
+# Tokenize the processed texts
+tokenized_corpus = [doc.split() for doc in df['processed_text']]
+bm25 = BM25Okapi(tokenized_corpus)
+
+# Keywords to search for
+keywords = "sample text"
+tokenized_keywords = keywords.split()
+
+# Get BM25 scores for each document in the corpus
+scores = bm25.get_scores(tokenized_keywords)
+
+# Add the BM25 scores to the DataFrame
+df['bm25_score'] = scores
+
+# Load MiniLM model and tokenizer
+tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+model = AutoModel.from_pretrained('sentence-transformers/all-MiniLM-L6-v2')
+
+# Function to encode text using MiniLM
+def encode(texts):
+    inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
+    with torch.no_grad():
+        model_output = model(**inputs)
+    embeddings = model_output.last_hidden_state.mean(dim=1).numpy()
+    return embeddings
+
+# Encode the combined texts in the DataFrame
+df['dense_embedding'] = list(encode(df['combined_text'].tolist()))
+
+# Encode the keywords
+keyword_embedding = encode([keywords])[0]
+
+# Calculate cosine similarity scores
+df['dense_score'] = df['dense_embedding'].apply(lambda x: cosine_similarity([x], [keyword_embedding]).item())
+
+# Normalize the scores
+df['bm25_score'] = (df['bm25_score'] - df['bm25_score'].min()) / (df['bm25_score'].max() - df['bm25_score'].min())
+df['dense_score'] = (df['dense_score'] - df['dense_score'].min()) / (df['dense_score'].max() - df['dense_score'].min())
+
+# Define weightage
+weight_bm25 = 0.5
+weight_dense = 0.5
+
+# Calculate combined score
+df['combined_score'] = weight_bm25 * df['bm25_score'] + weight_dense * df['dense_score']
+
+# Sort the DataFrame by the combined score in descending order
+df_sorted = df.sort_values(by='combined_score', ascending=False)
+
+# Display the sorted DataFrame
+print("Combined Scores (Sorted):")
+print(df_sorted)
+
+
+
