@@ -218,3 +218,24 @@ print(df_sorted)
 
 tokenized_keywords = [keyword.split() for keyword in keywords]
 processed_keywords = [preprocess(keyword) for keyword in keywords]
+
+
+
+# Collect the code cells
+    code_cells = [cell['source'] for cell in nb.cells if cell.cell_type == 'code']
+    return code_cells
+
+# Execute the summarization notebook and get its code
+code_cells = execute_notebook('summarization.ipynb')
+
+# Execute the collected code cells
+for code in code_cells:
+    exec(code)
+
+# Now you can call the main_function from summarization.ipynb
+input_data = "This is the input data to be summarized."
+result = main_function(input_data)
+
+# Use the summarization result
+print(result)
+
