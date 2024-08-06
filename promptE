@@ -216,4 +216,5 @@ print("Combined Scores (Sorted):")
 print(df_sorted)
 
 
-
+tokenized_keywords = [keyword.split() for keyword in keywords]
+processed_keywords = [preprocess(keyword) for keyword in keywords]
