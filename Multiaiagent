@@ -6,40 +6,54 @@ from langchain.prompts import PromptTemplate
 
 Set Your OpenAI API Key
 os.environ["OPENAI_API_KEY"] = "your-openai-api-key"
+
 class ReaderAgent:
     def __init__(self, file_path):
         self.file_path = file_path
 
     def read_file(self):
-        # Read the file content
-        with open(self.file_path, 'r') as file:
-            content = file.read()
-        return content
+        # Read the CSV file into a DataFrame
+        try:
+            df = pd.read_csv(self.file_path)
+            return df
+        except FileNotFoundError:
+            print(f"Error: File {self.file_path} not found.")
+            return None
+        except pd.errors.EmptyDataError:
+            print(f"Error: File {self.file_path} is empty.")
+            return None
+        except Exception as e:
+            print(f"An error occurred while reading the file: {e}")
+            return None
+
 class DecisionAgent:
     def __init__(self, prompt):
         self.prompt = prompt
         self.llm = OpenAI(temperature=0)
+        self.prompt_template = PromptTemplate(
+            input_variables=["data_summary"],
+            template=f"{self.prompt}\n\nData Summary:\n{{data_summary}}\n\nDecision:"
+        )
 
-    def decide(self, content):
-        # Create a decision-making prompt
-        decision_prompt = f"{self.prompt}\n\nContent:\n{content}\n\nDecision:"
+    def decide(self, data_summary):
+        decision_prompt = self.prompt_template.render(data_summary=data_summary)
         response = self.llm(decision_prompt)
         return response.strip()
+
+
 class StatisticsAgent:
     def __init__(self):
         pass
 
-    def calculate_statistics(self, content):
-        # Example: Calculate word count and unique words
-        words = content.split()
-        word_count = len(words)
-        unique_words = len(set(words))
-        return {'word_count': word_count, 'unique_words': unique_words}
+    def calculate_statistics(self, df):
+        # Compute statistical summary similar to df.describe()
+        stats = df.describe(include='all').transpose()
+        return stats
 
     def print_statistics(self, stats):
-        print("Statistics:")
-        for key, value in stats.items():
-            print(f"{key}: {value}")
+        print("Statistical Summary:")
+        print(stats)
+
 
 class SupervisorAgent:
     def __init__(self, reader_agent, decision_agent, statistics_agent):
@@ -48,33 +62,46 @@ class SupervisorAgent:
         self.statistics_agent = statistics_agent
 
     def run(self):
-        # Step 1: Read the file
-        content = self.reader_agent.read_file()
-        print("File content successfully read.\n")
+        # Step 1: Read the CSV file
+        df = self.reader_agent.read_file()
+        if df is None:
+            return  # Exit if reading failed
+        print("CSV file successfully read.\n")
 
-        # Step 2: Make a decision based on the prompt
-        decision = self.decision_agent.decide(content)
+        # Step 2: Calculate and print statistics
+        stats = self.statistics_agent.calculate_statistics(df)
+        self.statistics_agent.print_statistics(stats)
+        print("\n")
+
+        # Prepare data summary for the decision agent
+        data_summary = stats.to_string()
+
+        # Step 3: Make a decision based on the prompt
+        decision = self.decision_agent.decide(data_summary)
         print(f"Decision made based on the prompt:\n{decision}\n")
 
-        # Step 3: Calculate and print statistics
-        stats = self.statistics_agent.calculate_statistics(content)
-        self.statistics_agent.print_statistics(stats)
 
 def main():
     # Specify the file path and prompt
-    file_path = 'your_file.txt'
-    prompt = "Based on the content provided, determine the primary subject matter and suggest next steps."
+    file_path = 'your_file.csv'
+    prompt = "Based on the statistical summary provided, analyze the data and suggest any significant findings or next steps."
 
     # Initialize agents
     reader_agent = ReaderAgent(file_path)
-    decision_agent = DecisionAgent(prompt)
     statistics_agent = StatisticsAgent()
+    decision_agent = DecisionAgent(prompt)
 
     # Initialize supervisor agent
     supervisor_agent = SupervisorAgent(reader_agent, decision_agent, statistics_agent)
 
     # Run the multi-agent system
     supervisor_agent.run()
+
+if __name__ == "__main__":
+    main()
+
+
+
 
 if __name__ == "__main__":
     main()
