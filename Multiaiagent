@@ -1,0 +1,80 @@
+pip install langchain openai
+import os
+from langchain.agents import initialize_agent, Tool
+from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
+
+Set Your OpenAI API Key
+os.environ["OPENAI_API_KEY"] = "your-openai-api-key"
+class ReaderAgent:
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def read_file(self):
+        # Read the file content
+        with open(self.file_path, 'r') as file:
+            content = file.read()
+        return content
+class DecisionAgent:
+    def __init__(self, prompt):
+        self.prompt = prompt
+        self.llm = OpenAI(temperature=0)
+
+    def decide(self, content):
+        # Create a decision-making prompt
+        decision_prompt = f"{self.prompt}\n\nContent:\n{content}\n\nDecision:"
+        response = self.llm(decision_prompt)
+        return response.strip()
+class StatisticsAgent:
+    def __init__(self):
+        pass
+
+    def calculate_statistics(self, content):
+        # Example: Calculate word count and unique words
+        words = content.split()
+        word_count = len(words)
+        unique_words = len(set(words))
+        return {'word_count': word_count, 'unique_words': unique_words}
+
+    def print_statistics(self, stats):
+        print("Statistics:")
+        for key, value in stats.items():
+            print(f"{key}: {value}")
+
+class SupervisorAgent:
+    def __init__(self, reader_agent, decision_agent, statistics_agent):
+        self.reader_agent = reader_agent
+        self.decision_agent = decision_agent
+        self.statistics_agent = statistics_agent
+
+    def run(self):
+        # Step 1: Read the file
+        content = self.reader_agent.read_file()
+        print("File content successfully read.\n")
+
+        # Step 2: Make a decision based on the prompt
+        decision = self.decision_agent.decide(content)
+        print(f"Decision made based on the prompt:\n{decision}\n")
+
+        # Step 3: Calculate and print statistics
+        stats = self.statistics_agent.calculate_statistics(content)
+        self.statistics_agent.print_statistics(stats)
+
+def main():
+    # Specify the file path and prompt
+    file_path = 'your_file.txt'
+    prompt = "Based on the content provided, determine the primary subject matter and suggest next steps."
+
+    # Initialize agents
+    reader_agent = ReaderAgent(file_path)
+    decision_agent = DecisionAgent(prompt)
+    statistics_agent = StatisticsAgent()
+
+    # Initialize supervisor agent
+    supervisor_agent = SupervisorAgent(reader_agent, decision_agent, statistics_agent)
+
+    # Run the multi-agent system
+    supervisor_agent.run()
+
+if __name__ == "__main__":
+    main()
