@@ -1,0 +1,185 @@
+# Install necessary packages
+!pip install -U langgraph langchain langchain_openai langchain_experimental langsmith pandas matplotlib seaborn
+
+import getpass
+import os
+from typing import Annotated, Sequence, TypedDict
+from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_openai import ChatOpenAI
+from pydantic import BaseModel
+from typing import Literal
+from langgraph.graph import END, StateGraph, START
+from langgraph.prebuilt import create_react_agent
+import functools
+import operator
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import json
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+def _set_if_undefined(var: str):
+    if not os.environ.get(var):
+        os.environ[var] = getpass.getpass(f"Please provide your {var}: ")
+
+_set_if_undefined("OPENAI_API_KEY")
+
+class ReaderAgent:
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.df = None
+
+    def read_file(self):
+        try:
+            self.df = pd.read_csv(self.file_path)
+            logging.info("CSV file successfully read.\n")
+        except FileNotFoundError:
+            logging.error(f"Error: File {self.file_path} not found.")
+        except pd.errors.EmptyDataError:
+            logging.error(f"Error: File {self.file_path} is empty.")
+        except Exception as e:
+            logging.error(f"An error occurred while reading the file: {e}")
+
+class SummaryAgent:
+    def __init__(self, df):
+        self.df = df
+
+    def generate_summary(self):
+        if self.df is not None:
+            summary = self.df.describe(include='all').transpose()
+            return summary
+        else:
+            logging.error("DataFrame is empty. Cannot generate summary.")
+            return None
+
+    def __call__(self):
+        summary = self.generate_summary()
+        if summary is not None:
+            print("Statistical Summary:")
+            print(summary)
+        return {"messages": [HumanMessage(content="Summary generated.", name="SummaryAgent")]}
+
+class PlottingAgent:
+    def __init__(self, df):
+        self.df = df
+
+    def plot_data(self):
+        if self.df is not None:
+            numerical_cols = self.df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+            if numerical_cols:
+                sns.pairplot(self.df[numerical_cols])
+                plt.show()
+            else:
+                logging.info("No numerical columns available for plotting.")
+        else:
+            logging.error("DataFrame is empty. Cannot generate plots.")
+
+    def __call__(self):
+        self.plot_data()
+        return {"messages": [HumanMessage(content="Plot generated.", name="PlottingAgent")]}
+
+class DecisionResponse(BaseModel):
+    actions: list
+
+class SupervisorAgent:
+    def __init__(self, prompt, members):
+        self.prompt = prompt
+        self.members = members
+        self.llm = ChatOpenAI(model="gpt-4", temperature=0)
+        self.system_prompt = (
+            f"You are a supervisor tasked with managing a conversation between the "
+            f"following workers: {', '.join(members)}. Given the following user request, "
+            f"respond with the list of workers to act next. Each worker will perform a "
+            f"task and respond with their results and status. When finished, respond with FINISH."
+        )
+        self.chat_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", self.system_prompt),
+                MessagesPlaceholder(variable_name="messages"),
+                (
+                    "system",
+                    "Given the conversation above, which workers should act next? "
+                    "Respond with a JSON list of workers' names or FINISH."
+                ),
+            ]
+        )
+
+    def __call__(self, state):
+        supervisor_chain = (
+            self.chat_prompt
+            | self.llm.with_structured_output(DecisionResponse)
+        )
+        result = supervisor_chain.invoke(state)
+        return result
+
+# Define the agent state
+class AgentState(TypedDict):
+    messages: Annotated[Sequence[BaseMessage], operator.add]
+    actions: list
+
+def agent_node(state, agent, name):
+    result = agent()
+    return {"messages": state["messages"] + result["messages"]}
+
+def supervisor_node(state, supervisor_agent):
+    result = supervisor_agent(state)
+    if result['actions'] == ["FINISH"]:
+        state["__end__"] = True  # Signal the end of the workflow
+    return {"actions": result["actions"], "messages": state["messages"]}
+
+# Initialize agents (we'll create them after reading the file)
+reader_agent = None
+summary_agent = None
+plotting_agent = None
+supervisor_agent = None
+
+def main():
+    # Get user inputs
+    file_path = input("Please enter the path to your CSV file: ")
+    prompt = input("Please enter your prompt: ")
+
+    # Define agent names
+    members = ["SummaryAgent", "PlottingAgent"]
+
+    # Initialize the reader agent and read the file
+    global reader_agent, summary_agent, plotting_agent, supervisor_agent
+    reader_agent = ReaderAgent(file_path)
+    reader_agent.read_file()
+
+    if reader_agent.df is None:
+        logging.error("Failed to read the CSV file. Exiting.")
+        return
+
+    # Initialize other agents with the DataFrame
+    summary_agent = SummaryAgent(reader_agent.df)
+    plotting_agent = PlottingAgent(reader_agent.df)
+    supervisor_agent = SupervisorAgent(prompt, members)
+
+    # Define the workflow graph
+    workflow = StateGraph(AgentState)
+    workflow.add_node("SummaryAgent", functools.partial(agent_node, agent=summary_agent, name="SummaryAgent"))
+    workflow.add_node("PlottingAgent", functools.partial(agent_node, agent=plotting_agent, name="PlottingAgent"))
+    workflow.add_node("Supervisor", functools.partial(supervisor_node, supervisor_agent=supervisor_agent))
+
+    # Add edges
+    for member in members:
+        workflow.add_edge(member, "Supervisor")
+    workflow.add_edge("Supervisor", "Supervisor")  # Supervisor can call itself
+    workflow.add_edge(START, "Supervisor")
+
+    # Compile the graph
+    graph = workflow.compile()
+
+    # Initial state
+    state = {"messages": [HumanMessage(content=prompt, name="User")], "actions": []}
+
+    # Run the graph
+    for s in graph.run(state):
+        if "__end__" in s:
+            break
+
+if __name__ == "__main__":
+    main()
