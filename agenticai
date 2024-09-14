@@ -1,0 +1,150 @@
+# Install necessary packages
+!pip install -U langgraph langchain langchain_openai langchain_experimental langsmith pandas matplotlib seaborn
+
+import getpass
+import os
+from typing import Annotated, Sequence, TypedDict
+from pydantic import BaseModel
+from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_openai import ChatOpenAI
+from langgraph.graph import END, StateGraph, START
+from langgraph.prebuilt import create_react_agent
+import functools
+import operator
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+# Set up OpenAI API key
+def _set_if_undefined(var: str):
+    if not os.environ.get(var):
+        os.environ[var] = getpass.getpass(f"Please provide your {var}: ")
+
+_set_if_undefined("OPENAI_API_KEY")
+
+# Agent State definition
+class AgentState(TypedDict):
+    messages: Annotated[Sequence[BaseMessage], operator.add]
+    next: str
+
+# Agent node function
+def agent_node(state, agent, name):
+    result = agent.invoke(state)
+    # Append the agent's response to the messages
+    return {"messages": state["messages"] + [HumanMessage(content=result["messages"][-1].content, name=name)]}
+
+# Supervisor agent function
+def supervisor_agent(state):
+    # Define the supervisor's prompt
+    supervisor_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", "You are a supervisor tasked with managing a conversation between the following workers: {members}. Given the following user request, respond with the worker to act next. Each worker will perform a task and respond with their results and status. When finished, respond with FINISH."),
+            MessagesPlaceholder(variable_name="messages"),
+            ("system", "Given the conversation above, who should act next? Or should we FINISH? Select one of: {options}"),
+        ]
+    ).partial(options=str(options), members=", ".join(members))
+
+    llm = ChatOpenAI(model="gpt-4", temperature=0)
+
+    class RouteResponse(BaseModel):
+        next: Literal[*options]
+
+    supervisor_chain = supervisor_prompt | llm.with_structured_output(RouteResponse)
+    result = supervisor_chain.invoke(state)
+    return result
+
+# Define members and options
+members = ["SummaryAgent", "PlottingAgent"]
+options = ["FINISH"] + members
+
+# Initialize agents
+def main():
+    # Get user inputs
+    file_path = input("Please enter the path to your CSV file: ")
+    prompt = input("Please enter your prompt: ")
+
+    # Read the CSV file
+    try:
+        df = pd.read_csv(file_path)
+        logging.info("CSV file successfully read.")
+    except FileNotFoundError:
+        logging.error(f"Error: File {file_path} not found.")
+        return
+    except pd.errors.EmptyDataError:
+        logging.error(f"Error: File {file_path} is empty.")
+        return
+    except Exception as e:
+        logging.error(f"An error occurred while reading the file: {e}")
+        return
+
+    # Create the agents using create_react_agent
+    # Define the tools that each agent can use
+
+    # Summary Agent
+    def summary_tool():
+        summary = df.describe(include='all').transpose()
+        print("Statistical Summary:")
+        print(summary)
+        return "Summary generated."
+
+    summary_agent = create_react_agent(
+        llm=ChatOpenAI(model="gpt-4", temperature=0),
+        tools=[],
+        additional_tools={"SummaryTool": summary_tool}
+    )
+
+    # Plotting Agent
+    def plotting_tool():
+        numerical_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+        if numerical_cols:
+            sns.pairplot(df[numerical_cols])
+            plt.show()
+            return "Plot generated."
+        else:
+            logging.info("No numerical columns available for plotting.")
+            return "No numerical columns to plot."
+
+    plotting_agent = create_react_agent(
+        llm=ChatOpenAI(model="gpt-4", temperature=0),
+        tools=[],
+        additional_tools={"PlottingTool": plotting_tool}
+    )
+
+    # Create agent nodes
+    summary_node = functools.partial(agent_node, agent=summary_agent, name="SummaryAgent")
+    plotting_node = functools.partial(agent_node, agent=plotting_agent, name="PlottingAgent")
+
+    # Define the workflow graph
+    workflow = StateGraph(AgentState)
+    workflow.add_node("SummaryAgent", summary_node)
+    workflow.add_node("PlottingAgent", plotting_node)
+    workflow.add_node("Supervisor", supervisor_agent)
+
+    # Add edges from agents to supervisor
+    for member in members:
+        workflow.add_edge(member, "Supervisor")
+    # The supervisor decides the next step based on 'next' field
+    conditional_map = {k: k for k in members}
+    conditional_map["FINISH"] = END
+    workflow.add_conditional_edges("Supervisor", lambda x: x["next"], conditional_map)
+    workflow.add_edge(START, "Supervisor")
+
+    # Compile the graph
+    graph = workflow.compile()
+
+    # Initial state
+    state = {"messages": [HumanMessage(content=prompt, name="User")], "next": ""}
+
+    # Run the graph
+    for s in graph.stream(state):
+        if "__end__" not in s:
+            pass  # Continue running until the supervisor decides to finish
+        else:
+            break
+
+if __name__ == "__main__":
+    main()
