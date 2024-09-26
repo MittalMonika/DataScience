@@ -1,0 +1,116 @@
+# Import Necessary Libraries
+import pandas as pd
+import numpy as np
+
+from sklearn.model_selection import train_test_split, GridSearchCV, KFold
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, accuracy_score, hamming_loss, f1_score
+from sklearn.multiclass import OneVsRestClassifier
+
+# Load the Dataset
+# Replace 'your_dataset.csv' with the path to your dataset
+df = pd.read_csv('your_dataset.csv')
+
+# Preprocess the Text Data
+# Combine 'name' and 'description' into a single feature
+df['text'] = df['name'] + ' ' + df['description']
+
+# Specify the target columns (16 sub-LOBs)
+target_columns = ['sub_lob_1', 'sub_lob_2', 'sub_lob_3', 'sub_lob_4', 'sub_lob_5',
+                  'sub_lob_6', 'sub_lob_7', 'sub_lob_8', 'sub_lob_9', 'sub_lob_10',
+                  'sub_lob_11', 'sub_lob_12', 'sub_lob_13', 'sub_lob_14', 'sub_lob_15', 'sub_lob_16']
+
+# Select the relevant columns
+df = df[['text'] + target_columns]
+
+# Drop rows with null values if any
+df.dropna(inplace=True)
+
+# Split the Dataset
+X = df['text']
+y = df[target_columns]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
+
+# Vectorize Text Data using TF-IDF
+tfidf_vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1,2))
+
+# Fit and transform the training data, transform the test data
+X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+X_test_tfidf = tfidf_vectorizer.transform(X_test)
+
+# Initialize the Multi-Label Logistic Regression Model
+# Initialize logistic regression model
+logreg = LogisticRegression(max_iter=1000, solver='saga')
+
+# Wrap logistic regression with OneVsRestClassifier
+ovr = OneVsRestClassifier(logreg)
+
+# Train the Model
+ovr.fit(X_train_tfidf, y_train)
+
+# Make Predictions
+y_pred = ovr.predict(X_test_tfidf)
+
+# Evaluate the Model
+# Exact Match Ratio (Accuracy)
+exact_match_ratio = accuracy_score(y_test, y_pred)
+print(f"Exact Match Ratio (Accuracy): {exact_match_ratio:.4f}")
+
+# Hamming Loss
+ham_loss = hamming_loss(y_test, y_pred)
+print(f"Hamming Loss: {ham_loss:.4f}")
+
+# Micro-Averaged F1 Score
+f1_micro = f1_score(y_test, y_pred, average='micro')
+print(f"Micro-Averaged F1 Score: {f1_micro:.4f}")
+
+# Classification Report
+print("Classification Report:")
+print(classification_report(y_test, y_pred, target_names=target_columns))
+
+# Perform Cross-Validation
+# Initialize KFold cross-validation
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+# Perform cross-validation
+cv_scores = cross_val_score(ovr, X_train_tfidf, y_train, cv=kf, scoring='f1_micro', n_jobs=-1)
+
+print(f"Cross-Validation F1 Scores (Micro-Averaged): {cv_scores}")
+print(f"Mean CV F1 Score: {cv_scores.mean():.4f}")
+
+# Hyperparameter Tuning with GridSearchCV
+# Define parameter grid for logistic regression
+param_grid = {
+    'estimator__C': [0.1, 1, 10],        # Regularization strength
+    'estimator__solver': ['saga'],       # 'saga' supports l1 penalty
+    'estimator__penalty': ['l1', 'l2'],  # Penalty types
+    'estimator__max_iter': [1000]
+}
+
+# Initialize GridSearchCV with OneVsRestClassifier
+grid_search = GridSearchCV(estimator=ovr, param_grid=param_grid, cv=3, scoring='f1_micro', n_jobs=-1)
+
+# Fit GridSearchCV
+grid_search.fit(X_train_tfidf, y_train)
+
+# Best parameters
+print(f"Best Parameters: {grid_search.best_params_}")
+
+# Evaluate the Best Model
+# Best estimator
+best_ovr = grid_search.best_estimator_
+
+# Predict with the best model
+y_pred_best = best_ovr.predict(X_test_tfidf)
+
+# Evaluate
+best_exact_match_ratio = accuracy_score(y_test, y_pred_best)
+print(f"Best Model Exact Match Ratio (Accuracy): {best_exact_match_ratio:.4f}")
+
+best_f1_micro = f1_score(y_test, y_pred_best, average='micro')
+print(f"Best Model Micro-Averaged F1 Score: {best_f1_micro:.4f}")
+
+print("Best Model Classification Report:")
+print(classification_report(y_test, y_pred_best, target_names=target_columns))
