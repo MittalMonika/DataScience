@@ -102,27 +102,17 @@ for sub_lob in target_columns:
     # Make predictions on the test set
     y_pred = best_pipeline.predict(X_test_tfidf)
     y_pred_prob = best_pipeline.predict_proba(X_test_tfidf)[:, 1]
+
+
     
-    # Evaluate the model
-    accuracy = accuracy_score(y_test_sub, y_pred)
-    precision = precision_score(y_test_sub, y_pred, zero_division=0)
-    recall = recall_score(y_test_sub, y_pred, zero_division=0)
-    f1 = f1_score(y_test_sub, y_pred, zero_division=0)
-    average_precision = average_precision_score(y_test_sub, y_pred_prob)
-    report = classification_report(y_test_sub, y_pred, zero_division=0)
     
-    # Print evaluation metrics
-    print(f"Accuracy for {sub_lob}: {accuracy:.4f}")
-    print(f"Precision for {sub_lob}: {precision:.4f}")
-    print(f"Recall for {sub_lob}: {recall:.4f}")
-    print(f"F1 Score for {sub_lob}: {f1:.4f}")
-    print(f"Average Precision Score for {sub_lob}: {average_precision:.4f}")
-    print(f"Classification Report for {sub_lob}:\n{report}")
     
-    # Store the model and evaluation metrics
-    models[sub_lob] = best_pipeline
+
+ Store evaluation metrics, including CV scores
     evaluation_results[sub_lob] = {
         'best_params': best_params,
+        'cv_f1_mean': cv_mean_score,
+        'cv_f1_std': cv_std_score,
         'accuracy': accuracy,
         'precision': precision,
         'recall': recall,
@@ -131,19 +121,22 @@ for sub_lob in target_columns:
         'classification_report': report
     }
 
-Step 7: Summarize and Validate the Results
+# Step 7: Summarize and Validate the Results
 
-python
-
-# Create a DataFrame to summarize the evaluation results
+# Create a DataFrame to summarize the evaluation results, including both CV and Test Scores
 results_summary = pd.DataFrame({
     'Sub_LOB': target_columns,
-    'Accuracy': [evaluation_results[sub_lob]['accuracy'] for sub_lob in target_columns],
-    'Precision': [evaluation_results[sub_lob]['precision'] for sub_lob in target_columns],
-    'Recall': [evaluation_results[sub_lob]['recall'] for sub_lob in target_columns],
-    'F1_Score': [evaluation_results[sub_lob]['f1_score'] for sub_lob in target_columns],
-    'Average_Precision': [evaluation_results[sub_lob]['average_precision'] for sub_lob in target_columns]
+    'CV_F1_Mean': [evaluation_results[sub_lob]['cv_f1_mean'] for sub_lob in target_columns],
+    'CV_F1_Std': [evaluation_results[sub_lob]['cv_f1_std'] for sub_lob in target_columns],
+    'Test_Accuracy': [evaluation_results[sub_lob]['accuracy'] for sub_lob in target_columns],
+    'Test_Precision': [evaluation_results[sub_lob]['precision'] for sub_lob in target_columns],
+    'Test_Recall': [evaluation_results[sub_lob]['recall'] for sub_lob in target_columns],
+    'Test_F1_Score': [evaluation_results[sub_lob]['f1_score'] for sub_lob in target_columns],
+    'Test_Average_Precision': [evaluation_results[sub_lob]['average_precision'] for sub_lob in target_columns]
 })
+
+print("\nSummary of Evaluation Results:")
+print(results_summary)
 
 print("\nSummary of Evaluation Results:")
 print(results_summary)
