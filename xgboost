@@ -254,3 +254,93 @@ print(f"Best Model Micro-Averaged F1 Score: {best_f1_micro:.4f}")
 
 print("Best Model Classification Report:")
 print(classification_report(y_test, y_pred_best, target_names=target_columns))
+
+
+
+
+### **c. Visualizations**
+
+#### **i. Scatter Plot: CV F1 Score vs. Test F1 Score**
+
+```python
+plt.figure(figsize=(10, 6))
+sns.scatterplot(
+    data=results_summary,
+    x='CV_F1_Mean',
+    y='Test_F1_Score',
+    hue='Sub_LOB',
+    s=100,
+    palette='deep'
+)
+plt.plot(
+    [results_summary['CV_F1_Mean'].min(), results_summary['CV_F1_Mean'].max()],
+    [results_summary['CV_F1_Mean'].min(), results_summary['CV_F1_Mean'].max()],
+    'k--',
+    label='Ideal Performance'
+)
+plt.title('Cross-Validation F1 Score vs. Test F1 Score')
+plt.xlabel('Cross-Validation F1 Score (Mean)')
+plt.ylabel('Test F1 Score')
+plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+plt.tight_layout()
+plt.show()
+
+ii. Bar Plot: CV F1 Score Mean with Error Bars
+
+python
+
+plt.figure(figsize=(12, 8))
+sns.barplot(
+    x='Sub_LOB',
+    y='CV_F1_Mean',
+    data=results_summary,
+    palette='viridis',
+    ci=None
+)
+
+# Add error bars manually
+for index, row in results_summary.iterrows():
+    plt.errorbar(
+        x=index,
+        y=row['CV_F1_Mean'],
+        yerr=row['CV_F1_Std'],
+        fmt='none',
+        c='black',
+        capsize=5
+    )
+
+plt.xticks(ticks=range(len(target_columns)), labels=target_columns, rotation=45)
+plt.title('Cross-Validation F1 Score Mean with Standard Deviation')
+plt.xlabel('Sub_LOB')
+plt.ylabel('CV F1 Score Mean')
+plt.tight_layout()
+plt.show()
+
+iii. Heatmap: Correlation Between Metrics
+
+python
+
+# Select relevant columns for correlation
+metrics_cols = [
+    'CV_F1_Mean',
+    'CV_F1_Std',
+    'Test_Accuracy',
+    'Test_Precision',
+    'Test_Recall',
+    'Test_F1_Score',
+    'Test_Average_Precision'
+]
+
+correlation_matrix = results_summary[metrics_cols].corr()
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(
+    correlation_matrix,
+    annot=True,
+    cmap='coolwarm',
+    fmt=".2f",
+    linewidths=.5
+)
+plt.title('Correlation Between Evaluation Metrics')
+plt.tight_layout()
+plt.show()
