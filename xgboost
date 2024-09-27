@@ -7,6 +7,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score, hamming_loss, f1_score
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.metrics import (
+    classification_report,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    average_precision_score
+)
 
 # Load the Dataset
 # Replace 'your_dataset.csv' with the path to your dataset
