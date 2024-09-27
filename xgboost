@@ -104,7 +104,27 @@ for sub_lob in target_columns:
     y_pred_prob = best_pipeline.predict_proba(X_test_tfidf)[:, 1]
 
 
+     Best parameters
+    best_params = grid_search.best_params_
+    print(f"Best Parameters for {sub_lob}: {best_params}")
     
+    # Retrieve CV results
+    cv_mean_score = grid_search.best_score_  # Mean CV F1-score of the best model
+    cv_std_score = grid_search.cv_results_['std_test_score'][grid_search.best_index_]  # Std Dev of CV F1-score
+    
+    # Retrain the model with best parameters on the entire training set
+    best_logreg = LogisticRegression(
+        C=best_params['C'],
+        solver=best_params['solver'],
+        penalty=best_params['penalty'],
+        class_weight=best_params['class_weight'],
+        max_iter=1000
+    )
+    best_logreg.fit(X_train_tfidf, y_train_sub)
+    
+    # Make predictions on the test set
+    y_pred = best_logreg.predict(X_test_tfidf)
+    y_pred_prob = best_logreg.predict_proba(X_test_tfidf)[:, 1]
     
     
 
