@@ -344,3 +344,34 @@ sns.heatmap(
 plt.title('Correlation Between Evaluation Metrics')
 plt.tight_layout()
 plt.show()
+
+
+
+
+
+#XGBoost 
+
+from xgboost import XGBClassifier
+# Define hyperparameter grid including the objective and scale_pos_weight
+xgb_param_grid = {
+    'n_estimators': [100, 200, 300],
+    'max_depth': [3, 5, 7],
+    'learning_rate': [0.01, 0.1, 0.2],
+    'subsample': [0.6, 0.8, 1.0],
+    'colsample_bytree': [0.6, 0.8, 1.0],
+    'gamma': [0, 0.1, 0.2],
+    'min_child_weight': [1, 5, 10],
+    'reg_alpha': [0, 0.01, 0.1],
+    'reg_lambda': [1, 1.5, 2],
+    'scale_pos_weight': [1, 2, 3]  # Adjust based on class imbalance
+}
+
+
+# Initialize XGBoost Classifier
+    xgb_model = XGBClassifier(
+        objective='binary:logistic',
+        eval_metric='logloss',
+        use_label_encoder=False,
+        n_jobs=-1,
+        random_state=42
+    )
