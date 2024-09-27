@@ -40,6 +40,125 @@ tfidf_vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1,2))
 X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
 X_test_tfidf = tfidf_vectorizer.transform(X_test)
 
+# Automate Hyperparameter Tuning, Cross-Validation, Training, and Testing
+models = {}
+evaluation_results = {}
+
+# Define parameter grid for hyperparameter tuning
+param_grid = {
+    'clf__C': [0.1, 1, 10],
+    'clf__solver': ['liblinear'],
+    'clf__penalty': ['l1', 'l2'],
+    'clf__class_weight': [None, 'balanced']
+}
+
+# Initialize StratifiedKFold for cross-validation
+kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+# Iterate over each target variable
+for sub_lob in target_columns:
+    print(f"\nProcessing target variable: {sub_lob}")
+    
+    # Extract target variable
+    y_train_sub = y_train[sub_lob]
+    y_test_sub = y_test[sub_lob]
+    
+    # Initialize the Pipeline with SMOTE and Logistic Regression
+    pipeline = ImbPipeline([
+        ('smote', SMOTE(random_state=42, sampling_strategy='minority')),
+        ('clf', LogisticRegression(max_iter=1000))
+    ])
+    
+    # Initialize GridSearchCV with F1-score as the scoring metric
+    grid_search = GridSearchCV(
+        estimator=pipeline,
+        param_grid=param_grid,
+        cv=kf,
+        scoring='f1',                # Use 'f1' for binary classification
+        n_jobs=-1,                   # Utilize all CPU cores
+        verbose=1                    # Display progress
+    )
+    
+    # Perform hyperparameter tuning
+    print(f"Hyperparameter tuning for {sub_lob}...")
+    grid_search.fit(X_train_tfidf, y_train_sub)
+    
+    # Best parameters
+    best_params = grid_search.best_params_
+    print(f"Best Parameters for {sub_lob}: {best_params}")
+    
+    # Retrain the pipeline on the entire training set with best parameters
+    best_pipeline = grid_search.best_estimator_
+    best_pipeline.fit(X_train_tfidf, y_train_sub)
+    
+    # Make predictions on the test set
+    y_pred = best_pipeline.predict(X_test_tfidf)
+    y_pred_prob = best_pipeline.predict_proba(X_test_tfidf)[:, 1]
+    
+    # Evaluate the model
+    accuracy = accuracy_score(y_test_sub, y_pred)
+    precision = precision_score(y_test_sub, y_pred, zero_division=0)
+    recall = recall_score(y_test_sub, y_pred, zero_division=0)
+    f1 = f1_score(y_test_sub, y_pred, zero_division=0)
+    average_precision = average_precision_score(y_test_sub, y_pred_prob)
+    report = classification_report(y_test_sub, y_pred, zero_division=0)
+    
+    # Print evaluation metrics
+    print(f"Accuracy for {sub_lob}: {accuracy:.4f}")
+    print(f"Precision for {sub_lob}: {precision:.4f}")
+    print(f"Recall for {sub_lob}: {recall:.4f}")
+    print(f"F1 Score for {sub_lob}: {f1:.4f}")
+    print(f"Average Precision Score for {sub_lob}: {average_precision:.4f}")
+    print(f"Classification Report for {sub_lob}:\n{report}")
+    
+    # Store the model and evaluation metrics
+    models[sub_lob] = best_pipeline
+    evaluation_results[sub_lob] = {
+        'best_params': best_params,
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': f1,
+        'average_precision': average_precision,
+        'classification_report': report
+    }
+
+Step 7: Summarize and Validate the Results
+
+python
+
+# Create a DataFrame to summarize the evaluation results
+results_summary = pd.DataFrame({
+    'Sub_LOB': target_columns,
+    'Accuracy': [evaluation_results[sub_lob]['accuracy'] for sub_lob in target_columns],
+    'Precision': [evaluation_results[sub_lob]['precision'] for sub_lob in target_columns],
+    'Recall': [evaluation_results[sub_lob]['recall'] for sub_lob in target_columns],
+    'F1_Score': [evaluation_results[sub_lob]['f1_score'] for sub_lob in target_columns],
+    'Average_Precision': [evaluation_results[sub_lob]['average_precision'] for sub_lob in target_columns]
+})
+
+print("\nSummary of Evaluation Results:")
+print(results_summary)
+
+Step 8: Save the Trained Models
+
+python
+
+# Save each trained pipeline to a file for future use
+for sub_lob, model in models.items():
+    filename = f'model_{sub_lob}.joblib'
+    joblib.dump(model, filename)
+    print(f"Saved model for {sub_lob} as {filename}")
+
+
+
+
+
+
+
+
+
+
 # Initialize the Multi-Label Logistic Regression Model
 # Initialize logistic regression model
 logreg = LogisticRegression(max_iter=1000, solver='saga')
