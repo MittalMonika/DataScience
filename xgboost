@@ -367,6 +367,18 @@ xgb_param_grid = {
 }
 
 
+xgb_param_dist_reduced = {
+    'n_estimators': [100, 200],
+    'max_depth': [3, 5, 7],
+    'learning_rate': [0.05, 0.1],
+    'subsample': [0.7, 0.9],
+    'colsample_bytree': [0.7, 0.9],
+    'gamma': [0, 0.1],
+    'min_child_weight': [1, 5]
+}
+
+
+
 # Initialize XGBoost Classifier
     xgb_model = XGBClassifier(
         objective='binary:logistic',
