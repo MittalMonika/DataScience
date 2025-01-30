@@ -16,11 +16,18 @@ from your_training_script import get_or_generate_embeddings  # ✅ Reuse your fu
 # Directory containing saved models
 MODEL_DIR = "saved_models"
 
-# Function to load the best trained model
+# Function to load the best trained model (extract model from dictionary)
 def load_best_model(target, embedding_model, classifier_name):
     model_filename = f"{MODEL_DIR}/{target}_{embedding_model}_{classifier_name}.joblib"
+    
     if os.path.exists(model_filename):
-        return load(model_filename)
+        saved_data = load(model_filename)  # Load dictionary { "model": best_model, "Best Params": best_params }
+        
+        if isinstance(saved_data, dict) and "model" in saved_data:
+            return saved_data["model"]  # ✅ Return only the trained model
+        else:
+            raise ValueError(f"Unexpected model format in {model_filename}. Expected dictionary with 'model' key.")
+    
     else:
         raise FileNotFoundError(f"Model file {model_filename} not found.")
 
