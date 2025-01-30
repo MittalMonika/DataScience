@@ -1,0 +1,80 @@
+import os
+import pickle
+import numpy as np
+import pandas as pd
+from joblib import load
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Load your existing embedding function
+from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer, AutoModel
+import torch
+
+# Load previous functions
+from your_training_script import get_or_generate_embeddings  # ✅ Reuse your function!
+
+# Directory containing saved models
+MODEL_DIR = "saved_models"
+
+# Function to load the best trained model
+def load_best_model(target, embedding_model, classifier_name):
+    model_filename = f"{MODEL_DIR}/{target}_{embedding_model}_{classifier_name}.joblib"
+    if os.path.exists(model_filename):
+        return load(model_filename)
+    else:
+        raise FileNotFoundError(f"Model file {model_filename} not found.")
+
+# Function to predict using saved embeddings and models
+def predict_new_samples(df, text_column, target_columns, embedding_files, classifiers):
+    predictions = pd.DataFrame({"ID": df.index})  # Store predictions
+
+    for embedding_name, embedding_file in embedding_files.items():
+        print(f"\nProcessing Embedding: {embedding_name}")
+
+        # Reuse function to get embeddings (LOAD or GENERATE if missing)
+        X_test = get_or_generate_embeddings(df, text_column, embedding_name, embedding_file)
+
+        for target in target_columns:
+            for classifier_name in classifiers:
+                print(f"Predicting {target} using {embedding_name} + {classifier_name}")
+
+                try:
+                    model = load_best_model(target, embedding_name, classifier_name)
+                    y_pred = model.predict(X_test)
+
+                    # Store predictions in DataFrame
+                    column_name = f"{target}_{embedding_name}_{classifier_name}"
+                    predictions[column_name] = ["Yes" if p == 1 else "No" for p in y_pred]
+
+                except FileNotFoundError as e:
+                    print(e)
+
+    return predictions
+
+# Load test data
+df_test = pd.read_csv("new_test_samples.csv")  # Update with actual test file
+df_test["text"] = df_test["name"] + " " + df_test["description"]  # Combine text columns
+
+# Define target labels & embeddings
+target_columns = [
+    "L2_Business Banking", "L2_CCB FINANCE", "L2_CCB STRATEGY", "L2_CCB TECHNOLOGY", 
+    "L2_CCB-JPM WM", "L2_CTO Library", "L2_Card Services", "L2_Chase Auto", 
+    "L2_Connected Commerce", "L2_Consumer Bank", "L2_Data & Analytics", "L2_Home Lending",
+    "L2_Marketing", "L2_Operations", "L2_Product and Experience"
+]
+
+embedding_files = {
+    "TF-IDF": "tfidf_embeddings.pkl",
+    "SBERT": "transformer_embeddings.pkl",
+    "BERT": "finbert_embeddings.pkl",
+    "OpenAI": "openai_embeddings.pkl"
+}
+
+classifiers = ["LR", "RF", "XGB", "NN"]  # Classifiers used during training
+
+# Run predictions
+predictions_df = predict_new_samples(df_test, "text", target_columns, embedding_files, classifiers)
+
+# Save results
+predictions_df.to_csv("predictions.txt", index=False)
+print("\nPredictions saved to predictions.txt")
