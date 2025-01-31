@@ -99,3 +99,12 @@ data = data.rename(columns=mapping_dict)
 
 # Print updated column names to verify
 print("Updated Column Names:", data.columns)
+
+
+# Define columns that should NOT be changed (like "ID")
+columns_to_exclude = ["ID"]  # Add other columns to exclude if needed
+
+# Modify mapping to add "L2_" where needed, while keeping excluded columns unchanged
+mapping_dict = {col: f"L2_{col}" if col not in columns_to_exclude and not col.startswith("L2_") else col for col in current_columns}
+
+# Rename columns using the modified mapping
