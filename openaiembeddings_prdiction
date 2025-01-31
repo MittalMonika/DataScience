@@ -131,3 +131,7 @@ mapping_dict = {col: f"L2_{col}" if col not in columns_to_exclude and not col.st
             label="Model 2 Predictions (OpenAI)",
             marker="s"
         )filtered_openai = openai_predictions[openai_predictions["ID"] == id_value].iloc[0]
+
+
+
+openai_predictions.columns = openai_predictions.columns.str.replace(r"^L2_", "", regex=True)
