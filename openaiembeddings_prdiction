@@ -85,3 +85,17 @@ predictions_df = predict_new_samples(df_test, "text", target_columns, embedding_
 # Save results
 predictions_df.to_csv("predictions.txt", index=False)
 print("\nPredictions saved to predictions.txt")
+
+
+
+# Extract current column names
+current_columns = data.columns.tolist()
+
+# Modify mapping to add "L2_" where needed
+mapping_dict = {col: f"L2_{col}" if not col.startswith("L2_") else col for col in current_columns}
+
+# Rename columns using the modified mapping
+data = data.rename(columns=mapping_dict)
+
+# Print updated column names to verify
+print("Updated Column Names:", data.columns)
