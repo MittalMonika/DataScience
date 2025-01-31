@@ -31,6 +31,18 @@ def load_best_model(target, embedding_model, classifier_name):
     else:
         raise FileNotFoundError(f"Model file {model_filename} not found.")
 
+
+
+
+# Plot OpenAI Predictions separately
+        ax.scatter(
+            range(len(sub_lobs)), 
+            [0.5] * len(sub_lobs), 
+            color=["blue" if filtered_openai[lob] > 0.5 else "gray" for lob in sub_lobs],
+            label="Model 2 Predictions (OpenAI)",
+            marker="s"
+        )filtered_openai = openai_predictions[openai_predictions["ID"] == id_value].iloc[0]
+
 # Function to predict using saved embeddings and models
 def predict_new_samples(df, text_column, target_columns, embedding_files, classifiers):
     predictions = pd.DataFrame({"ID": df.index})  # Store predictions
