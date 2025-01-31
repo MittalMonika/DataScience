@@ -120,3 +120,14 @@ columns_to_exclude = ["ID"]  # Add other columns to exclude if needed
 mapping_dict = {col: f"L2_{col}" if col not in columns_to_exclude and not col.startswith("L2_") else col for col in current_columns}
 
 # Rename columns using the modified mapping
+
+
+
+# Plot OpenAI Predictions separately
+        ax.scatter(
+            range(len(sub_lobs)), 
+            [0.5] * len(sub_lobs), 
+            color=["blue" if filtered_openai[lob] > 0.5 else "gray" for lob in sub_lobs],
+            label="Model 2 Predictions (OpenAI)",
+            marker="s"
+        )filtered_openai = openai_predictions[openai_predictions["ID"] == id_value].iloc[0]
