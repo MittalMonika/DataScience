@@ -151,3 +151,9 @@ def verify_name_on_page(page_text: str, customer_name: str, pass_threshold=85):
         "snippet": "\n---\n".join(blocks)[:500] if blocks else ""
     }
 
+from name_check import verify_name_on_page
+page = "Sender's Name: Acme Corporation LLC\nAddress: 123 Main St"
+print(verify_name_on_page(page, "Acme Corporation LLC"))
+# -> extracted_name='Acme Corporation LLC', high match_score, pass=True
+
+
